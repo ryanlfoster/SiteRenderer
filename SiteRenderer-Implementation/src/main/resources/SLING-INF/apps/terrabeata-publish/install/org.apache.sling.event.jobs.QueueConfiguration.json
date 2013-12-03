@@ -1,0 +1,11 @@
+{
+    "jcr:primaryType":"sling:OsgiConfig",
+    "queue.maxparallel": 15,
+  	"queue.name":"publish-queue",
+  	"queue.priority":"NORM",
+  	"queue.retries":10,
+  	"queue.retrydelay":2000,
+  	"queue.runlocal":true,
+  	"queue.topics":["com/terrabeata/wcm/publish/job"],
+  	"queue.type":"ORDERED"
+}

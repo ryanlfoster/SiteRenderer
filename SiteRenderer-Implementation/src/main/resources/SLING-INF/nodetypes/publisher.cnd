@@ -1,0 +1,5 @@
+<'terrabeata'='http://ns.terrabeata.com/sling/2014'>
+
+[terrabeata:Website]
+  mixin
+  - terrabeata:publisher (string)
