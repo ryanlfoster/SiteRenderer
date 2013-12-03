@@ -1,62 +1,17 @@
-<?xml version="1.0" encoding="ISO-8859-1"?>
-<!--
-  Licensed to the Apache Software Foundation (ASF) under one
-  or more contributor license agreements.  See the NOTICE file
-  distributed with this work for additional information
-  regarding copyright ownership.  The ASF licenses this file
-  to you under the Apache License, Version 2.0 (the
-  "License"); you may not use this file except in compliance
-  with the License.  You may obtain a copy of the License at
-
-   http://www.apache.org/licenses/LICENSE-2.0
-
-  Unless required by applicable law or agreed to in writing,
-  software distributed under the License is distributed on an
-  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-  KIND, either express or implied.  See the License for the
-  specific language governing permissions and limitations
-  under the License.
--->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.terrabeata.wcm</groupId>
-    <artifactId>publish-implementation</artifactId>
+    <artifactId>site-renderer-impl</artifactId>
     <packaging>bundle</packaging>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>Terra Beata Content Publishing</name>
-    <description>Terra Beata Website Publishing Implementation</description>
+    <version>0.1.0-SNAPSHOT</version>
+    <name>Terra Beata Website Rendering Implementation</name>
+    <description>Terra Beata Website Rendering Implementation</description>
+    
     <build>
-    
-    <pluginManagement> 
-      <plugins> 
-        <plugin> 
-          <groupId>org.eclipse.m2e</groupId> 
-          <artifactId>lifecycle-mapping</artifactId> 
-          <version>1.0.0</version> 
-          <configuration> 
-          <lifecycleMappingMetadata> 
-            <pluginExecutions> 
-              <pluginExecution> 
-                <pluginExecutionFilter> 
-                  <groupId>org.apache.felix</groupId> 
-                  <artifactId>maven-scr-plugin</artifactId> 
-                  <versionRange>[1.0,)</versionRange> 
-                  <goals> 
-                    <goal>scr</goal> 
-                  </goals> 
-                </pluginExecutionFilter> 
-                <action> 
-                  <execute /> 
-                </action> 
-              </pluginExecution> 
-            </pluginExecutions> 
-          </lifecycleMappingMetadata> 
-          </configuration> 
-        </plugin> 
-      </plugins>
-    </pluginManagement>
-    
-        <plugins>
+
+       <plugins>
+       
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-scr-plugin</artifactId>
@@ -70,6 +25,7 @@
                     </execution>
                 </executions>
             </plugin>
+            
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
@@ -85,17 +41,17 @@
                     <instructions>
                     	<Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
                        <Sling-Initial-Content>
-                            SLING-INF/apps/terrabeata-publish/install;overwrite:=true;path:=/apps/terrabeata-publish/install,
-                            SLING-INF/apps/terrabeata-publish/components;overwrite:=true;path:=/apps/terrabeata-publish/components,
-                            SLING-INF/content/terrabeata-publish;overwrite:=true;path:=/content/terrabeata-publish
+                            SLING-INF/apps/terrabeata-site-renderer;overwrite:=true;path:=/apps/terrabeata-site-renderer,
+                            SLING-INF/content/terrabeata-site-renderer-sample;overwrite:=true;path:=/content/terrabeata-site-renderer-sample
                         </Sling-Initial-Content>
                   <Sling-Nodetypes>
-                    SLING-INF/nodetypes/publisher.cnd
+                    SLING-INF/nodetypes/site-renderer.cnd
                   </Sling-Nodetypes>
                         
                     </instructions>
                 </configuration>
             </plugin>
+            
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -144,7 +100,7 @@
                         </password>
                     </configuration>
                 </execution>
-                
+                 
 
             </executions>
         </plugin>
@@ -238,6 +194,7 @@
 			<scope>provided</scope>
 		</dependency>
 	    </dependencies>
+	    <!--  
     <profiles>
         <profile>
             <id>autoInstallBundle</id>
@@ -264,5 +221,5 @@
                 </plugins>
             </build>
         </profile>
-    </profiles>
+    </profiles> -->
 </project>
