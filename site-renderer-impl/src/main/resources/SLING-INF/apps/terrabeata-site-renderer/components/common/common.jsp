@@ -19,7 +19,7 @@
 <body>
 
 <h1><%= resource.getPath() %></h1>
-<p>This is simple, sample, content. Is siteRoot: <%= resource.isResourceType("terrabeata:Website") %>.</p>
+<p>This is simple, sample, content. Is siteRoot: <%= resource.isResourceType("nt:unstructured") %>.</p>
 <p><%
 Node myNode = resource.adaptTo(Node.class);
 PropertyIterator props = myNode.getProperties();

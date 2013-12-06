@@ -1,19 +1,18 @@
 package com.terrabeata.wcm.siteRenderer;
 
-import java.awt.datatransfer.MimeTypeParseException;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.UUID;
 
 import javax.jcr.Node;
-import javax.jcr.PathNotFoundException;
-import javax.jcr.RepositoryException;
-import javax.jcr.ValueFormatException;
 
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -23,13 +22,16 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolverFactory;
-import org.apache.sling.commons.mime.MimeTypeProvider;
 import org.apache.sling.commons.mime.MimeTypeService;
 import org.apache.sling.commons.osgi.OsgiUtil;
 import org.apache.sling.event.EventUtil;
 import org.apache.sling.event.jobs.JobManager;
 import org.apache.sling.event.jobs.JobUtil;
 import org.apache.sling.event.jobs.Queue;
+import org.apache.sling.event.jobs.QueueConfiguration;
+import org.osgi.framework.InvalidSyntaxException;
+import org.osgi.service.cm.Configuration;
+import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.ComponentContext;
 import org.osgi.service.event.Event;
 import org.osgi.service.event.EventAdmin;
@@ -38,14 +40,14 @@ import org.osgi.service.event.EventHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.terrabeata.wcm.siteRenderer.api.SiteRendererConstants;
-import com.terrabeata.wcm.siteRenderer.api.SiteRenderer;
 import com.terrabeata.wcm.siteRenderer.api.Publisher;
 import com.terrabeata.wcm.siteRenderer.api.ResourceConfiguration;
-import com.terrabeata.wcm.siteRenderer.api.SiteConfigurationException;
 import com.terrabeata.wcm.siteRenderer.api.SiteConfiguration;
+import com.terrabeata.wcm.siteRenderer.api.SiteConfigurationException;
+import com.terrabeata.wcm.siteRenderer.api.SiteRenderer;
+import com.terrabeata.wcm.siteRenderer.api.SiteRendererConstants;
 
-@Component(immediate=true, metatype=true)
+@Component(immediate=true)
 @Service(value={SiteRenderer.class,EventHandler.class})
 @Property(name = EventConstants.EVENT_TOPIC, 
           value=SiteRendererConstants.PUBLISH_JOB_TOPIC)
@@ -54,6 +56,9 @@ public class SiteRendererImpl implements
 	
 	private static final Logger log = 
 			LoggerFactory.getLogger(SiteRendererImpl.class);
+	
+	private static final String configurationFilterFormat = 
+			"(&(queue.topics=%s) (service.pid=%s*))";
 	
 	@Reference
 	private JobManager jobManager;
@@ -66,6 +71,9 @@ public class SiteRendererImpl implements
 	
 	@Reference
 	private MimeTypeService mimeTypeService;
+	
+	@Reference
+	private ConfigurationAdmin configAdmin;
 
 	private Hashtable<String, Publisher> publishers;
 	
@@ -90,6 +98,8 @@ public class SiteRendererImpl implements
 		
 		String slingHome = context.getBundleContext().getProperty("sling.home");
 		
+		confirmQueue();
+		
 		log.debug("slingHome={}",slingHome);
 	}
 	
@@ -106,8 +116,9 @@ public class SiteRendererImpl implements
 		if (EventUtil.isLocal(event))
 		{
 			String publisherName = OsgiUtil.toString(
-					event.getProperty(SiteRendererConstants.PROPERTY_EVENT_PUBLISHER_NAME), 
-				     "default");
+					event.getProperty(
+						SiteRendererConstants.PROPERTY_EVENT_PUBLISHER_NAME), 
+				        "default");
 		
 			if (publishers.containsKey(publisherName))
 			{
@@ -117,7 +128,8 @@ public class SiteRendererImpl implements
 				Publisher publisher = publishers.get(publisherName);
 				JobUtil.processJob(event, publisher);
 			} else {
-				log.warn("handleEvent:: Not able to find publisher, {}", publisherName);
+				log.warn("handleEvent:: Not able to find publisher, {}", 
+						 publisherName);
 			}
 		}
 	}
@@ -217,12 +229,14 @@ public class SiteRendererImpl implements
 		}
 
 		map.put(SiteRendererConstants.PROPERTY_EVENT_FILE_NAME, fileName);
-		map.put(SiteRendererConstants.PROPERTY_EVENT_PUBLISHER_NAME, publisherName);
+		map.put(SiteRendererConstants.PROPERTY_EVENT_PUBLISHER_NAME, 
+				                                                 publisherName);
 		map.put(SiteRendererConstants.PROPERTY_EVENT_DESTINATION_PATH, 
 				                          getDestination(resource.getResource(), 
 						                  resource.getWebsiteConfiguration()));
 		map.put(SiteRendererConstants.PROPERTY_EVENT_WEBSITE_NAME, websiteName);
-		map.put(JobUtil.PROPERTY_JOB_TOPIC, SiteRendererConstants.PUBLISH_JOB_TOPIC);
+		map.put(JobUtil.PROPERTY_JOB_TOPIC, 
+				                       SiteRendererConstants.PUBLISH_JOB_TOPIC);
 		map.put(JobUtil.PROPERTY_JOB_NAME, UUID.randomUUID().toString());
 		
 		 
@@ -276,7 +290,7 @@ public class SiteRendererImpl implements
 	
 	
 	//--------------------------------------------------------------------------
-	// Private utility methods
+	// Private discovery methods
 	//--------------------------------------------------------------------------
 	
 	private String getDestination(Resource resource, 
@@ -297,7 +311,8 @@ public class SiteRendererImpl implements
 		log.debug("getSiteRoot:: resource={}",resource.getName());
 		Resource currentResource = resource;
 		while(null != currentResource) {
-			log.debug("getSiteRoot:: currentResource={}",currentResource.getName());
+			log.debug("getSiteRoot:: currentResource={}",
+					   currentResource.getName());
 			if (currentResource.isResourceType("terrabeata:Website")) {
 				log.debug("getSiteRoot:: found root={}",resource.getName());
 				return currentResource;
@@ -305,9 +320,64 @@ public class SiteRendererImpl implements
 			currentResource = currentResource.getParent();
 			
 		}
-		
 		return null;
 	}
+	
+	private void confirmQueue() {
+		// this job discovery is different than the one in getQueue - this will
+		// find inactive queues as well
+		try {
+			String configFilter = String.format(configurationFilterFormat, 
+					new Object[]{SiteRendererConstants.PUBLISH_JOB_TOPIC,
+					             QueueConfiguration.class.getName()});
+			
+			Configuration[] configurations = 
+					configAdmin.listConfigurations(configFilter);
+			if (configurations.length > 0) {
+				log.debug("confirmQueue:: queue for job topic, {}, exists.", 
+						SiteRendererConstants.PUBLISH_JOB_TOPIC);
+				return;
+			}
+		} catch (IOException e1) {
+			log.warn("confirmQueue:: Error while retrieving queue: {}\n {}", 
+					e1.toString(), getStackTrace(e1));
+			e1.printStackTrace();
+		} catch (InvalidSyntaxException e1) {
+			log.warn("confirmQueue:: Error while retrieving queue: {}\n {}", 
+					e1.toString(), getStackTrace(e1));
+			e1.printStackTrace();
+		}
+		
+		try {
+			Configuration config = 
+					configAdmin.createFactoryConfiguration(
+							QueueConfiguration.class.getName());
+			// create default queue
+			Dictionary<String, Object> props = new Hashtable<String, Object>();
+			props.put("queue.name", "terrabeata-rendering-queue");
+			props.put("queue.maxparallel", 15);
+			props.put("queue.priority", "NORM");
+			props.put("queue.retries", 10);
+			props.put("queue.retrydelay", 2000);
+			props.put("queue.runlocal", true);
+			props.put("queue.topics", 
+					   new String[] {SiteRendererConstants.PUBLISH_JOB_TOPIC});
+			props.put("queue.type", "ORDERED");
+			config.update(props);
+			log.debug("confirmQueue:: Queue created");
+		} catch (IOException e) {
+			log.error("Unable find or create queue to handle publish jobs");
+		}
+	}
+	
+	private String getStackTrace(Throwable aThrowable) {
+	    Writer result = new StringWriter();
+	    PrintWriter printWriter = new PrintWriter(result);
+	    aThrowable.printStackTrace(printWriter);
+	    return result.toString();
+	  }
+	
+	
 	
 	//--------------------------------------------------------------------------
 	// Private WebsiteConfiguration implementation
@@ -321,7 +391,8 @@ public class SiteRendererImpl implements
 		
 		public WebsiteConfigImpl (Resource siteRoot) 
 				                         throws SiteConfigurationException {
-			if (null != siteRoot && siteRoot.isResourceType("terrabeata:Website")) { 
+			if (null != siteRoot && 
+					siteRoot.isResourceType("terrabeata:Website")) { 
 				Node root = siteRoot.adaptTo(Node.class);
 				String publisher = "default";
 				try {
@@ -336,7 +407,8 @@ public class SiteRendererImpl implements
 				this.name = siteRoot.getName();
 			} else {
 				throw new SiteConfigurationException("Invalid Website " +
-					"root resource: "+siteRoot+". Root must be type terrabeata:Website");
+					"root resource: "+siteRoot+
+					". Root must be type terrabeata:Website");
 			}
 		}
 

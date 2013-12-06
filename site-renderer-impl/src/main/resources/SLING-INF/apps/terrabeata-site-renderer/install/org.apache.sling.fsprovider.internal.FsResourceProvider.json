@@ -1,5 +1,0 @@
-{
-    "jcr:primaryType":"sling:OsgiConfig",
-    "provider.roots":"terrabeata-websites",
-  	"provider.file":"terrabeata-websites"
-}

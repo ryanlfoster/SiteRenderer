@@ -10,6 +10,7 @@ import javax.servlet.ServletContext;
 
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Modified;
 import org.apache.felix.scr.annotations.Property;
@@ -23,6 +24,9 @@ import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.commons.osgi.OsgiUtil;
 import org.osgi.framework.BundleContext;
+import org.osgi.service.cm.ConfigurationException;
+import org.osgi.service.cm.ManagedService;
+import org.osgi.service.cm.ManagedServiceFactory;
 import org.osgi.service.component.ComponentContext;
 import org.osgi.service.event.Event;
 import org.slf4j.Logger;
@@ -38,11 +42,13 @@ import com.terrabeata.wcm.siteRenderer.internal.FileTransport;
 import com.terrabeata.wcm.siteRenderer.internal.WebDAVTransport;
 
 @Component (
+		label = "Terra Beata Publisher for Site Rendering",
+		name = "com.terrabeata.wcm.siteRenderer.PublisherImpl",
 		configurationFactory = true,
 		metatype = true,
 		immediate = true,
-		label = "Terra Beata Resource Publisher"
-		)
+		policy=ConfigurationPolicy.REQUIRE
+)
 //@Service(value={JobProcessor.class})
 //@Property(name=JobUtil.PROPERTY_JOB_TOPIC, value="com/terrabeata/sling/publish/publish")
 
@@ -55,6 +61,7 @@ public class PublisherImpl extends SlingAdaptable implements Publisher {
 	private Transport transport;
 	
 	private Dictionary properties;
+	
 	
 	private Event currentJob;
 	
@@ -71,7 +78,8 @@ public class PublisherImpl extends SlingAdaptable implements Publisher {
 	@Property(description="%publisher.port.description", label="Port")
 	static final String PORT = SiteRendererConstants.PROPERTY_PORT;
 	
-	@Property(description="%publisher.protocol.description", label="Protocol",
+	@Property(description="%publisher.protocol.description", label="Protocol", 
+			  value="file",
 			options={ 
 				@PropertyOption(name="ftp", value="FTP"),
 				@PropertyOption(name="sftp", value="SFTP"),
@@ -80,7 +88,9 @@ public class PublisherImpl extends SlingAdaptable implements Publisher {
 	})
 	static final String PROTOCOL = SiteRendererConstants.PROPERTY_PROTOCOL;
 	
-	@Property(description="%publisher.root.directory.description", label="Root Directory")
+	@Property(description="%publisher.root.directory.description", 
+			  label="Root Directory", 
+			  value="{sling.home}/{publisher.name}/{website.name}")
 	static final String ROOT_DIRECTORY = SiteRendererConstants.PROPERTY_ROOT_DIRECTORY;
 	
 	@Property(description="%publisher.url.description", label="Final URL")
@@ -315,6 +325,7 @@ public class PublisherImpl extends SlingAdaptable implements Publisher {
 		}
 		return super.adaptTo(type);
 	}
+
 
 
 }
