@@ -54,12 +54,28 @@ import com.terrabeata.wcm.siteRenderer.api.SiteRendererConstants;
 public class SiteRendererImpl implements 
 								    SiteRenderer, EventHandler {
 	
+	
+	public static final String DEFAULT_PUBLISHER_NAME = 
+			"terrabeata-renderer-default";
+	
 	private static final Logger log = 
 			LoggerFactory.getLogger(SiteRendererImpl.class);
 	
 	private static final String configurationFilterFormat = 
-			"(&(queue.topics=%s) (service.pid=%s*))";
-	
+			"(&(%s=%s) (service.pid=%s*))";
+			
+	private static final String queueConfigurationFilter = 
+			String.format(configurationFilterFormat,
+						  new Object[]{"queue.topics",
+		                                SiteRendererConstants.PUBLISH_JOB_TOPIC,
+					                    QueueConfiguration.class.getName()});
+					     
+	private static final String publisherConfigurationFilter =
+			String.format(configurationFilterFormat,
+					  new Object[]{"publisher.name",
+					                DEFAULT_PUBLISHER_NAME,
+				                    PublisherImpl.class.getName()});
+
 	@Reference
 	private JobManager jobManager;
 	
@@ -99,6 +115,7 @@ public class SiteRendererImpl implements
 		String slingHome = context.getBundleContext().getProperty("sling.home");
 		
 		confirmQueue();
+		confirmDefaultPublisher();
 		
 		log.debug("slingHome={}",slingHome);
 	}
@@ -118,7 +135,7 @@ public class SiteRendererImpl implements
 			String publisherName = OsgiUtil.toString(
 					event.getProperty(
 						SiteRendererConstants.PROPERTY_EVENT_PUBLISHER_NAME), 
-				        "default");
+						DEFAULT_PUBLISHER_NAME);
 		
 			if (publishers.containsKey(publisherName))
 			{
@@ -327,13 +344,9 @@ public class SiteRendererImpl implements
 		// this job discovery is different than the one in getQueue - this will
 		// find inactive queues as well
 		try {
-			String configFilter = String.format(configurationFilterFormat, 
-					new Object[]{SiteRendererConstants.PUBLISH_JOB_TOPIC,
-					             QueueConfiguration.class.getName()});
-			
 			Configuration[] configurations = 
-					configAdmin.listConfigurations(configFilter);
-			if (configurations.length > 0) {
+					configAdmin.listConfigurations(queueConfigurationFilter);
+			if (null != configurations && configurations.length > 0) {
 				log.debug("confirmQueue:: queue for job topic, {}, exists.", 
 						SiteRendererConstants.PUBLISH_JOB_TOPIC);
 				return;
@@ -369,6 +382,44 @@ public class SiteRendererImpl implements
 			log.error("Unable find or create queue to handle publish jobs");
 		}
 	}
+	
+	private void confirmDefaultPublisher() {
+		log.debug("confirmDefaultPublisher:: ");
+		try {
+			Configuration[] configurations = 
+				   configAdmin.listConfigurations(publisherConfigurationFilter);
+			if (null != configurations && configurations.length > 0) {
+				log.debug("confirmDefaultPublisher:: " +
+						  "default publisher exists.");
+				return;
+			}
+		} catch (Throwable e1) {
+			log.warn("confirmDefaultPublisher:: Error while retrieving " +
+					 "default publisher: {}\n {}", 
+					e1.toString(), getStackTrace(e1));
+			e1.printStackTrace();
+		}
+		
+		try {
+			Configuration config = 
+					configAdmin.createFactoryConfiguration(
+							PublisherImpl.class.getName());
+			// create default queue
+			Dictionary<String, Object> props = new Hashtable<String, Object>();
+			props.put(SiteRendererConstants.PROPERTY_NAME, 
+					DEFAULT_PUBLISHER_NAME);
+			props.put(SiteRendererConstants.PROPERTY_PROTOCOL, "file");
+			props.put(SiteRendererConstants.PROPERTY_EVENT_DESTINATION_PATH,
+					SiteRendererConstants.SLING_HOME_TAG + "/" +
+			        SiteRendererConstants.PUBLISHER_NAME_TAG + "/" +
+				    SiteRendererConstants.WEBSITE_NAME_TAG);
+			config.update(props);
+			log.debug("confirmDefaultPublisher:: publisher created");
+		} catch (IOException e) {
+			log.error("Unable find or create default publisher.");
+		}
+	}
+	
 	
 	private String getStackTrace(Throwable aThrowable) {
 	    Writer result = new StringWriter();

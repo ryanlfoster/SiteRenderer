@@ -1,5 +1,0 @@
-{
-    "jcr:primaryType":"sling:OsgiConfig",
-    "publisher.name":"default",
-  	"publisher.type":"file"
-}
