@@ -29,6 +29,8 @@ import org.apache.sling.event.jobs.JobManager;
 import org.apache.sling.event.jobs.JobUtil;
 import org.apache.sling.event.jobs.Queue;
 import org.apache.sling.event.jobs.QueueConfiguration;
+import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleContext;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
@@ -56,8 +58,11 @@ public class SiteRendererImpl implements
 	
 	
 	public static final String DEFAULT_PUBLISHER_NAME = 
-			"terrabeata-renderer-default";
-	
+			"terrabeata-renderer-publisher-default";
+
+	public static final String DEFAULT_QUEUE_NAME = 
+			"terrabeata-renderer-job-queue";
+
 	private static final Logger log = 
 			LoggerFactory.getLogger(SiteRendererImpl.class);
 	
@@ -66,8 +71,8 @@ public class SiteRendererImpl implements
 			
 	private static final String queueConfigurationFilter = 
 			String.format(configurationFilterFormat,
-						  new Object[]{"queue.topics",
-		                                SiteRendererConstants.PUBLISH_JOB_TOPIC,
+					      new Object[]{"publisher.name",
+		                                DEFAULT_QUEUE_NAME,
 					                    QueueConfiguration.class.getName()});
 					     
 	private static final String publisherConfigurationFilter =
@@ -90,6 +95,8 @@ public class SiteRendererImpl implements
 	
 	@Reference
 	private ConfigurationAdmin configAdmin;
+	
+	private ComponentContext context;
 
 	private Hashtable<String, Publisher> publishers;
 	
@@ -104,6 +111,8 @@ public class SiteRendererImpl implements
 	
 	@Activate
 	private void activate(ComponentContext context) throws Exception {
+		this.context = context;
+		
 		Dictionary properties = context.getProperties();
 		Enumeration keys = properties.keys();
 		
@@ -113,10 +122,9 @@ public class SiteRendererImpl implements
 		}
 		
 		String slingHome = context.getBundleContext().getProperty("sling.home");
-		
-		confirmQueue();
-		confirmDefaultPublisher();
-		
+
+		confirmConfigurations();
+
 		log.debug("slingHome={}",slingHome);
 	}
 	
@@ -143,6 +151,7 @@ public class SiteRendererImpl implements
 						  "publish job",publisherName);
 				
 				Publisher publisher = publishers.get(publisherName);
+				confirmQueue();
 				JobUtil.processJob(event, publisher);
 			} else {
 				log.warn("handleEvent:: Not able to find publisher, {}", 
@@ -341,33 +350,29 @@ public class SiteRendererImpl implements
 	}
 	
 	private void confirmQueue() {
-		// this job discovery is different than the one in getQueue - this will
-		// find inactive queues as well
+		if (null != getQueue()) return;
+
 		try {
-			Configuration[] configurations = 
-					configAdmin.listConfigurations(queueConfigurationFilter);
-			if (null != configurations && configurations.length > 0) {
-				log.debug("confirmQueue:: queue for job topic, {}, exists.", 
-						SiteRendererConstants.PUBLISH_JOB_TOPIC);
-				return;
+			
+			// get the bundle location for Sling event - will bind to that
+			BundleContext bctx = context.getBundleContext();
+			Bundle[] bundles = bctx.getBundles();
+			String bundleLocation = null;
+			
+			for (int i = 0; i < bundles.length; i++) {
+				Bundle bundle = bundles[i];
+				if ("org.apache.sling.event".equals(bundle.getSymbolicName())) {
+					bundleLocation = bundle.getLocation();
+					break;
+				}
 			}
-		} catch (IOException e1) {
-			log.warn("confirmQueue:: Error while retrieving queue: {}\n {}", 
-					e1.toString(), getStackTrace(e1));
-			e1.printStackTrace();
-		} catch (InvalidSyntaxException e1) {
-			log.warn("confirmQueue:: Error while retrieving queue: {}\n {}", 
-					e1.toString(), getStackTrace(e1));
-			e1.printStackTrace();
-		}
-		
-		try {
+			
 			Configuration config = 
 					configAdmin.createFactoryConfiguration(
-							QueueConfiguration.class.getName());
+							QueueConfiguration.class.getName(), bundleLocation);
 			// create default queue
 			Dictionary<String, Object> props = new Hashtable<String, Object>();
-			props.put("queue.name", "terrabeata-rendering-queue");
+			props.put("queue.name", DEFAULT_QUEUE_NAME);
 			props.put("queue.maxparallel", 15);
 			props.put("queue.priority", "NORM");
 			props.put("queue.retries", 10);
@@ -383,8 +388,12 @@ public class SiteRendererImpl implements
 		}
 	}
 	
-	private void confirmDefaultPublisher() {
-		log.debug("confirmDefaultPublisher:: ");
+	private void confirmConfigurations() {
+		log.debug("confirmConfigurations:: ");
+		// Making it so this bundle can use queue configuration is 
+		// accessible to event bundle AND be detectable by this bundle is 
+		// problematic. Look for publish config - if exists, assume queue
+		// config does too
 		try {
 			Configuration[] configurations = 
 				   configAdmin.listConfigurations(publisherConfigurationFilter);
@@ -401,23 +410,69 @@ public class SiteRendererImpl implements
 		}
 		
 		try {
-			Configuration config = 
-					configAdmin.createFactoryConfiguration(
-							PublisherImpl.class.getName());
-			// create default queue
-			Dictionary<String, Object> props = new Hashtable<String, Object>();
-			props.put(SiteRendererConstants.PROPERTY_NAME, 
-					DEFAULT_PUBLISHER_NAME);
-			props.put(SiteRendererConstants.PROPERTY_PROTOCOL, "file");
-			props.put(SiteRendererConstants.PROPERTY_EVENT_DESTINATION_PATH,
-					SiteRendererConstants.SLING_HOME_TAG + "/" +
-			        SiteRendererConstants.PUBLISHER_NAME_TAG + "/" +
-				    SiteRendererConstants.WEBSITE_NAME_TAG);
-			config.update(props);
-			log.debug("confirmDefaultPublisher:: publisher created");
+			addQueueConfig();
 		} catch (IOException e) {
-			log.error("Unable find or create default publisher.");
+			log.error("Error while creating queue configuration: {}", 
+					  getStackTrace(e));
+			e.printStackTrace();
+			// do not add publisher if error
+			return;
 		}
+		
+		try {
+			addDefaultPublisherConfig();
+		} catch (IOException e) {
+			log.error("Error while creating default publisher: {}",
+					  getStackTrace(e));
+			e.printStackTrace();
+		}
+	}
+	
+	private void addDefaultPublisherConfig() throws IOException{
+		Configuration config = 
+				configAdmin.createFactoryConfiguration(
+						PublisherImpl.class.getName());
+		// create default queue
+		Dictionary<String, Object> props = new Hashtable<String, Object>();
+		props.put(SiteRendererConstants.PROPERTY_NAME, 
+				DEFAULT_PUBLISHER_NAME);
+		props.put(SiteRendererConstants.PROPERTY_PROTOCOL, "file");
+		props.put(SiteRendererConstants.PROPERTY_EVENT_DESTINATION_PATH,
+				SiteRendererConstants.SLING_HOME_TAG + "/" +
+		        SiteRendererConstants.PUBLISHER_NAME_TAG + "/" +
+			    SiteRendererConstants.WEBSITE_NAME_TAG);
+		config.update(props);
+	}
+	
+	private void addQueueConfig() throws IOException {
+		// get the bundle location for Sling event - will bind to that
+		BundleContext bctx = context.getBundleContext();
+		Bundle[] bundles = bctx.getBundles();
+		String bundleLocation = null;
+		
+		for (int i = 0; i < bundles.length; i++) {
+			Bundle bundle = bundles[i];
+			if ("org.apache.sling.event".equals(bundle.getSymbolicName())) {
+				bundleLocation = bundle.getLocation();
+				break;
+			}
+		}
+		
+		Configuration config = 
+				configAdmin.createFactoryConfiguration(
+						QueueConfiguration.class.getName(), bundleLocation);
+		// create default queue
+		Dictionary<String, Object> props = new Hashtable<String, Object>();
+		props.put("queue.name", DEFAULT_QUEUE_NAME);
+		props.put("queue.maxparallel", 15);
+		props.put("queue.priority", "NORM");
+		props.put("queue.retries", 10);
+		props.put("queue.retrydelay", 2000);
+		props.put("queue.runlocal", true);
+		props.put("queue.topics", 
+				   new String[] {SiteRendererConstants.PUBLISH_JOB_TOPIC});
+		props.put("queue.type", "ORDERED");
+		config.update(props);
 	}
 	
 	

@@ -129,7 +129,7 @@
             	<groupId>org.apache.sling</groupId>
             	<artifactId>maven-sling-plugin</artifactId>
             	<executions>
-					<execution>
+<!-- 					<execution>
                     	<id>install-bundle-cq</id>
                     	<goals>
                         	<goal>install</goal>
@@ -140,7 +140,7 @@
                         	<password>${cq.password}</password>
                     	</configuration>
                 	</execution>  
-					<execution>
+ -->					<execution>
                     	<id>install-bundle-sling</id>
                     	<goals>
                         	<goal>install</goal>
