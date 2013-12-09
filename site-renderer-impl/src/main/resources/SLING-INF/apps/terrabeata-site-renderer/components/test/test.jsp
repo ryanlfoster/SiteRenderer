@@ -1,3 +1,4 @@
+<%@page import="org.apache.sling.api.resource.ResourceResolver"%>
 <%@page import="com.terrabeata.wcm.siteRenderer.api.SiteConfiguration"%>
 <%@page import="com.terrabeata.wcm.siteRenderer.api.SiteConfigurationException"%>
 <%@page import="org.apache.sling.api.resource.Resource"%>
@@ -24,9 +25,10 @@
 <h1>Publisher Test</h1><%
 	
 %><%
-	SiteRenderer publisherManager = sling.getService(SiteRenderer.class);
+SiteRenderer publisherManager = sling.getService(SiteRenderer.class);
+final ResourceResolver rr = resourceResolver;
 
-final Resource top = resourceResolver.getResource("/content/terrabeata-publish");
+final Resource top = rr.getResource("/content/terrabeata-publish");
 final String publisherName = "default";
 
 SiteConfiguration website = new SiteConfiguration() {
