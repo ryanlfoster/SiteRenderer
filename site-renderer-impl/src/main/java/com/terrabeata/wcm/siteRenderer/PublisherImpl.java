@@ -46,8 +46,7 @@ import com.terrabeata.wcm.siteRenderer.internal.WebDAVTransport;
 		name = "com.terrabeata.wcm.siteRenderer.PublisherImpl",
 		configurationFactory = true,
 		metatype = true,
-		immediate = true,
-		policy=ConfigurationPolicy.REQUIRE
+		immediate = true
 )
 //@Service(value={JobProcessor.class})
 //@Property(name=JobUtil.PROPERTY_JOB_TOPIC, value="com/terrabeata/sling/publish/publish")
