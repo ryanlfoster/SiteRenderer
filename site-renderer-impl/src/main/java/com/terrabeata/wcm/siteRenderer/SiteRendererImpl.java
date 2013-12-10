@@ -31,7 +31,6 @@ import org.apache.sling.event.jobs.Queue;
 import org.apache.sling.event.jobs.QueueConfiguration;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
-import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.ComponentContext;
@@ -124,8 +123,6 @@ public class SiteRendererImpl implements
 		String slingHome = context.getBundleContext().getProperty("sling.home");
 
 		confirmConfigurations();
-
-		log.debug("slingHome={}",slingHome);
 	}
 	
 	@Deactivate

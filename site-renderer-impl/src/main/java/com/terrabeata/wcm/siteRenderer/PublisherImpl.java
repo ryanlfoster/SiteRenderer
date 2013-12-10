@@ -61,7 +61,6 @@ public class PublisherImpl extends SlingAdaptable implements Publisher {
 	
 	private Dictionary properties;
 	
-	
 	private Event currentJob;
 	
 	//--------------------------------------------------------------------------

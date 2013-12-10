@@ -1,3 +1,4 @@
+<%@page import="org.apache.sling.api.resource.ResourceResolver"%>
 <%@page import="javax.jcr.Value"%><%
 %><%@page import="org.apache.sling.commons.osgi.OsgiUtil"%><%
 %><%@page import="javax.jcr.Property"%><%
@@ -17,9 +18,8 @@
 <html>
 <head><title>Sample Content</title></head>
 <body>
-
 <h1><%= resource.getPath() %></h1>
-<p>This is simple, sample, content. Is siteRoot: <%= resourceResolver.isResourceType(resource,"nt:unstructured") %>.</p>
+<p>This is simple, sample, content. Is siteRoot: resource.isResourceType("nt:unstructured") %>.</p>
 <p><%
 Node myNode = resource.adaptTo(Node.class);
 PropertyIterator props = myNode.getProperties();
