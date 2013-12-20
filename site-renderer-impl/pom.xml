@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.terrabeata.wcm</groupId>
 	    <artifactId>site-renderer</artifactId>
-	    <version>0.2.0-SNAPSHOT</version>
+	    <version>0.2.0</version>
     </parent>
 
     <!-- ====================================================================== -->
@@ -16,7 +16,6 @@
     <!-- ====================================================================== -->
     <artifactId>site-renderer-impl</artifactId>
     <packaging>bundle</packaging>
-    <version>0.2.0-SNAPSHOT</version>
     <name>Terra Beata Website Rendering Implementation</name>
     <description>Terra Beata Website Rendering Implementation</description>
 
