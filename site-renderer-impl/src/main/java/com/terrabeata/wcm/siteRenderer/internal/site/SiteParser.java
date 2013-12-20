@@ -61,9 +61,7 @@ public class SiteParser {
 	
 	public Iterator<ResourceConfiguration> getTreeResources(Resource top, SiteConfiguration site) throws SiteConfigurationException {
 		Resource[] resources = getRenderableChildren(top);
-		if (! site.getTopResource().getPath().equals(top.getPath())) {
-			resources = (Resource[])ArrayUtils.add(resources, 0, top);
-		}
+		resources = (Resource[])ArrayUtils.add(resources, 0, top);
 		ResourceConfiguration[] configs = new ResourceConfiguration[resources.length];
 		for (int i = 0; i < resources.length; i++) {
 			ResourceConfiguration config = getResourceConfiguration(resources[i], site);
@@ -78,12 +76,22 @@ public class SiteParser {
 	
 	public ResourceConfiguration getResourceConfiguration(Resource resource) 
 			throws SiteConfigurationException {
+		return getResourceConfiguration(resource, "");	
+	}
+	
+	public ResourceConfiguration getResourceConfiguration(Resource resource, String name) 
+			throws SiteConfigurationException {
 		SiteConfiguration site = getSiteConfiguration(resource);
-		return getResourceConfiguration(resource, site);
+		return getResourceConfiguration(resource, name, site);
 	}
 	
 	public ResourceConfiguration getResourceConfiguration(Resource resource, 
-			SiteConfiguration site) {
+			SiteConfiguration site) throws SiteConfigurationException {
+		return getResourceConfiguration(resource, "", site);
+	}
+
+	public ResourceConfiguration getResourceConfiguration(Resource resource, 
+			String name, SiteConfiguration site) {
 		String suffix = null;
 		// if not a file or a mimetype, treat as html
 		if (resource.isResourceType("nt:file")) {
@@ -105,15 +113,21 @@ public class SiteParser {
 		if (null == suffix) suffix = "html";
 		
 		ResourceConfiguration resourceConfig = 
-				getResourceConfiguration(resource, 
-						                         suffix, 
-						                         null, 
+				getResourceConfiguration(resource,
+						                         "",
+						                         suffix,
+						                         null,
 						                         site);
 		return resourceConfig;
 	}
 	
 	public ResourceConfiguration getResourceConfiguration(Resource item, String suffix, String[] selectors, SiteConfiguration site) {
-		return new ResourceRenderConfigImpl(item, suffix, selectors, site);
+		return getResourceConfiguration(item, null, suffix, selectors, site);
+	}
+	
+	public ResourceConfiguration getResourceConfiguration(Resource item, 
+			String name, String suffix, String[] selectors, SiteConfiguration site) {
+		return new ResourceRenderConfigImpl(item, name, suffix, selectors, site);
 	}
 
 	private Resource[] getRenderableChildren(Resource parent) {
@@ -142,14 +156,5 @@ public class SiteParser {
 		log.debug("getRenderableChildren:: total resource={}", resources.length);
 		return resources;
 	}
-	
-	private Resource[] concat(Resource[] A, Resource[] B) {
-		   int aLen = A.length;
-		   int bLen = B.length;
-		   Resource[] C= new Resource[aLen+bLen];
-		   System.arraycopy(A, 0, C, 0, aLen);
-		   System.arraycopy(B, 0, C, aLen, bLen);
-		   return C;
-		}
 
 }

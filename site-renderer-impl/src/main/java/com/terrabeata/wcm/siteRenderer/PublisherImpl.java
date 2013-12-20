@@ -197,7 +197,7 @@ public class PublisherImpl extends SlingAdaptable implements Publisher {
 				         "");
 			String fileName =
 					OsgiUtil.toString(job.getProperty(
-							SiteRendererConstants.PROPERTY_EVENT_FILE_NAME), 
+							SiteRendererConstants.PROPERTY_DESTINATION_FILE_NAME), 
 							"");
 			ResourceResolver resourceResolver;
 			log.debug("[2]");
@@ -215,30 +215,30 @@ public class PublisherImpl extends SlingAdaptable implements Publisher {
 			}
 			log.debug("process:: resource name:{}, fileName:{}",
 					   resource.getName(),fileName);
-			if (resource.getName() != fileName) { // take for granted selectors and suffix added to file - pull those out
-				log.debug("process:: resource name is not equal to filename");
-				String[] nameParts = fileName.split("\\.");
-				log.debug("process:: nameParts.length={}",Integer.toString(nameParts.length));
-				if (nameParts.length > 1) { // has selectors
-					
-					for (int i = 1; i < (nameParts.length); i++) {
-						log.debug("part {} = {}",i,nameParts[i]);
-						if (i == (nameParts.length - 1)) {
-							log.debug("i={}, {}",i,nameParts[i]);
-							suffix = nameParts[i];
-						}
-						else {
-							if (null == selectors)
-								selectors = new String[nameParts.length - 2];
-							log.debug("-i={}, {}",i,nameParts[i]);
-							int which = i - 1;
-							selectors[which] = nameParts[i];
-						}
-						
-					}
-				}
-				
-			}
+//			if (resource.getName() != fileName && ! "index.html".equals(fileName)) { // take for granted selectors and suffix added to file - pull those out
+//				log.debug("process:: resource name is not equal to filename");
+//				String[] nameParts = fileName.split("\\.");
+//				log.debug("process:: nameParts.length={}",Integer.toString(nameParts.length));
+//				if (nameParts.length > 1) { // has selectors
+//					
+//					for (int i = 1; i < (nameParts.length); i++) {
+//						log.debug("part {} = {}",i,nameParts[i]);
+//						if (i == (nameParts.length - 1)) {
+//							log.debug("i={}, {}",i,nameParts[i]);
+//							suffix = nameParts[i];
+//						}
+//						else {
+//							if (null == selectors)
+//								selectors = new String[nameParts.length - 2];
+//							log.debug("-i={}, {}",i,nameParts[i]);
+//							int which = i - 1;
+//							selectors[which] = nameParts[i];
+//						}
+//						
+//					}
+//				}
+//				
+//			}
 			log.debug("[4]");
 	
 			InputStream inputStream = resourceRenderer.getInputStream(resource, suffix, selectors);

@@ -54,7 +54,7 @@ public class ResourceRendererImpl implements ResourceRenderingHelper {
 	@Property(description="Use https for render", label="HTTPS", 
 			  boolValue=false)
 	static final String HTTPS = "filerrenderer.https";
-	
+		
 	//--------------------------------------------------------------------------
 	// Instance variables
 	//--------------------------------------------------------------------------

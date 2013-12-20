@@ -7,4 +7,5 @@ public interface ResourceConfiguration {
 	Resource getResource();
 	String getSuffix();
 	String[] getSelectors();
+	boolean isDirectory();
 }

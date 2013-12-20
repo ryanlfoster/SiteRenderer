@@ -187,7 +187,8 @@ public class SiteRendererImpl implements
 	public void publishTree(ResourceConfiguration resource)
 			throws SiteConfigurationException {
 		Iterator<ResourceConfiguration> configs = 
-				siteParser.getTreeResources(resource.getResource(), resource.getWebsiteConfiguration());
+				siteParser.getTreeResources(resource.getResource(), 
+			    resource.getWebsiteConfiguration());
 		while(configs.hasNext()) {
 			publishResource(configs.next());
 		}
@@ -214,23 +215,25 @@ public class SiteRendererImpl implements
 	public void publishResource(ResourceConfiguration resource)
 			throws SiteConfigurationException {
 		String path = resource.getResource().getPath();
+		String destinationPath = path;
 		String fileName = resource.getResource().getName();
-		String[] selectors = resource.getSelectors();
-		String suffix = resource.getSuffix();
 		String websiteName = resource.getWebsiteConfiguration().getName();
 		String publisherName = resource.getWebsiteConfiguration().
                                                              getPublisherName();
-		log.info("publishResource:: resource: {}, suffix: {}, " +
-				   "selectors: {}, website: {}, publisher: {}", 
-				    new Object[] {path,
-				                  suffix,
-				                  selectors,
-				                  websiteName,
-				                  publisherName}
-		          );
-
-		if (null == publisherName) publisherName = "default";
 		
+		if (resource.isDirectory()) {
+			fileName = "index.html";
+		} else {
+			destinationPath = path.substring(0, path.lastIndexOf('/'));
+			int lastIndex = fileName.lastIndexOf('.');
+			if (lastIndex == -1) {
+				fileName += ".html";
+			} else if (lastIndex == (fileName.length()-1)) {
+				fileName += "html";
+			}
+		}
+		
+		if (null == publisherName) publisherName = DEFAULT_PUBLISHER_NAME;
 		Publisher publisher = publishers.get(publisherName);
 		if (null == publisher) {
 			String msg = "Publisher " + publisher + " does not exist.";
@@ -242,28 +245,13 @@ public class SiteRendererImpl implements
 		map.put(SiteRendererConstants.PROPERTY_EVENT_ACTION, 
 				SiteRendererConstants.ACTION_FILE_ADD);
 
-		if (null != selectors) {
-			for (int i = 0; i < selectors.length; i++) {
-				String selector = selectors[i];
-				if (null != selector && "" != selector)
-					fileName += "."+selector;
-			}
-		}
-
-		if (null != suffix && "" != suffix) {
-			if (suffix.startsWith("."))
-				fileName += suffix;
-			else
-				fileName += "." + suffix;
-		}
-
-		map.put(SiteRendererConstants.PROPERTY_EVENT_FILE_NAME, fileName);
 		map.put(SiteRendererConstants.PROPERTY_EVENT_PUBLISHER_NAME, 
 				                                                 publisherName);
 		map.put(SiteRendererConstants.PROPERTY_EVENT_DESTINATION_PATH, 
-				                          getDestination(resource.getResource(), 
+				                          getDestination(destinationPath, 
 						                  resource.getWebsiteConfiguration()));
 		map.put(SiteRendererConstants.PROPERTY_EVENT_WEBSITE_NAME, websiteName);
+		map.put(SiteRendererConstants.PROPERTY_DESTINATION_FILE_NAME, fileName);
 		map.put(JobUtil.PROPERTY_JOB_TOPIC, 
 				                       SiteRendererConstants.PUBLISH_JOB_TOPIC);
 		map.put(JobUtil.PROPERTY_JOB_NAME, UUID.randomUUID().toString());
@@ -296,16 +284,15 @@ public class SiteRendererImpl implements
 	// Private discovery methods
 	//--------------------------------------------------------------------------
 	
-	private String getDestination(Resource resource, 
+	private String getDestination(String destinationPath, 
 			                      SiteConfiguration website) 
 					throws SiteConfigurationException {
 		String websiteTop = website.getTopResource().getPath();
-		String resourcePath = resource.getPath();
-		if (resourcePath.startsWith(websiteTop)) {
-			return resourcePath.substring(websiteTop.length());
+		if (destinationPath.startsWith(websiteTop)) {
+			return destinationPath.substring(websiteTop.length());
 		} else {
 			String msg = "Website " + websiteTop +
-					     " does not contain resource " + resourcePath;
+					     " does not contain " + destinationPath;
 			throw new SiteConfigurationException(msg);
 		}
 	}

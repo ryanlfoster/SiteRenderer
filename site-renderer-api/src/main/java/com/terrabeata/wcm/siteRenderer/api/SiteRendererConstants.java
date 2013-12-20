@@ -50,12 +50,11 @@ public class SiteRendererConstants {
 	 */
 	public final static String PROPERTY_EVENT_ACTION = 
 			"event.publisher.action";
-	/**
-	 * Publish job property. The item name on the remote location of the item
-	 * to be acted on. The is a mandatory value.
-	 */
-	public final static String PROPERTY_EVENT_FILE_NAME = 
+
+	
+	public final static String PROPERTY_DESTINATION_FILE_NAME = 
 			"event.publisher.destination.filename";
+	
 	/**
 	 * Publish job property. The modification time stamp of the item to be acted
 	 * on. If the value, PROPERTY_FORCE_OVERWRITE, is false, then any item at 

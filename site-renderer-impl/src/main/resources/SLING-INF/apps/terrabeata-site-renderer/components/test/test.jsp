@@ -26,26 +26,8 @@
 	
 %><%
 SiteRenderer publisherManager = sling.getService(SiteRenderer.class);
+
 final ResourceResolver rr = resourceResolver;
-
-final Resource top = rr.getResource("/content/terrabeata-publish");
-final String publisherName = "default";
-
-SiteConfiguration website = new SiteConfiguration() {
-	
-	public Resource getTopResource() {
-		return top;
-	}
-	
-	public String getPublisherName() {
-		return publisherName;
-	}
-	
-	public String getName() {
-		return "testSite";
-	}
-};
-
 
 Resource res = resourceResolver.getResource("/content/terrabeata-site-renderer-sample/sample");
 
