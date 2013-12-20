@@ -11,7 +11,7 @@ import org.apache.sling.api.resource.Resource;
  * @author deke@terrabeata.com
  *
  */
-public interface ResourceRenderer {
+public interface ResourceRenderingHelper {
 	
 	InputStream getInputStream(Resource resource, String suffix, 
 			                   String[] selectors);

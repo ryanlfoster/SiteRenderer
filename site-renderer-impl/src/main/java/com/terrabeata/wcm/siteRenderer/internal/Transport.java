@@ -1,8 +1,10 @@
-package com.terrabeata.wcm.siteRenderer.api;
+package com.terrabeata.wcm.siteRenderer.internal;
 
 import java.io.InputStream;
 
 import org.osgi.service.event.Event;
+
+import com.terrabeata.wcm.siteRenderer.api.Publisher;
 
 public interface Transport {
 	

@@ -13,17 +13,17 @@ public interface SiteRenderer {
 	
 	Queue getQueue();
 	
-	void publishTree(Resource resource, SiteConfiguration website) 
+	void publishTree(SiteConfiguration website) 
 			throws SiteConfigurationException;
 	void publishTree(ResourceConfiguration resource) 
 			throws SiteConfigurationException;
 	void publishTree(Resource resource) 
 			throws SiteConfigurationException;
+	void publishTree(Resource resource, SiteConfiguration site)
+			throws SiteConfigurationException;
 
-	void publishResource(Resource resource, SiteConfiguration website) 
+	void publishResource(Resource resource) 
 			throws SiteConfigurationException;
 	void publishResource(ResourceConfiguration resource) 
-			throws SiteConfigurationException;
-	void publishResource(Resource resource) 
 			throws SiteConfigurationException;
 }

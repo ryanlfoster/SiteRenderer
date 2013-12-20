@@ -85,7 +85,11 @@
 			<groupId>org.apache.jackrabbit</groupId>
 			<artifactId>jackrabbit-jcr-commons</artifactId>
 		</dependency>
-	</dependencies>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>            
+    </dependencies>
 
     <!-- ====================================================================== -->
     <!-- B U I L D D E F I N I T I O N -->

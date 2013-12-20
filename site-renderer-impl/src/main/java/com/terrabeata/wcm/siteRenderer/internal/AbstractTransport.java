@@ -6,7 +6,6 @@ import java.util.UUID;
 import org.osgi.service.event.Event;
 
 import com.terrabeata.wcm.siteRenderer.api.Publisher;
-import com.terrabeata.wcm.siteRenderer.api.Transport;
 
 
 

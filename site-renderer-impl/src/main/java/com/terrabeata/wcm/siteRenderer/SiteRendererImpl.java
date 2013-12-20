@@ -12,8 +12,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 
-import javax.jcr.Node;
-
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -21,7 +19,6 @@ import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.sling.api.resource.Resource;
-import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.commons.mime.MimeTypeService;
 import org.apache.sling.commons.osgi.OsgiUtil;
 import org.apache.sling.event.EventUtil;
@@ -47,6 +44,7 @@ import com.terrabeata.wcm.siteRenderer.api.SiteConfiguration;
 import com.terrabeata.wcm.siteRenderer.api.SiteConfigurationException;
 import com.terrabeata.wcm.siteRenderer.api.SiteRenderer;
 import com.terrabeata.wcm.siteRenderer.api.SiteRendererConstants;
+import com.terrabeata.wcm.siteRenderer.internal.site.SiteParser;
 
 @Component(immediate=true)
 @Service(value={SiteRenderer.class,EventHandler.class})
@@ -79,15 +77,12 @@ public class SiteRendererImpl implements
 					  new Object[]{"publisher.name",
 					                DEFAULT_PUBLISHER_NAME,
 				                    PublisherImpl.class.getName()});
-
+	
 	@Reference
 	private JobManager jobManager;
 	
 	@Reference
 	private EventAdmin eventAdmin;
-	
-	@Reference
-	private ResourceResolverFactory resourceResolverFactory;
 	
 	@Reference
 	private MimeTypeService mimeTypeService;
@@ -99,9 +94,12 @@ public class SiteRendererImpl implements
 
 	private Hashtable<String, Publisher> publishers;
 	
+	private SiteParser siteParser;
+	
 	public SiteRendererImpl() {
 		super();
 		publishers = new Hashtable<String, Publisher>();
+		siteParser = new SiteParser(mimeTypeService);
 	}
 	
 	//--------------------------------------------------------------------------
@@ -120,8 +118,6 @@ public class SiteRendererImpl implements
 			log.debug("activate:: {} = {}", key, properties.get(key));
 		}
 		
-		String slingHome = context.getBundleContext().getProperty("sling.home");
-
 		confirmConfigurations();
 	}
 	
@@ -166,10 +162,12 @@ public class SiteRendererImpl implements
 	}
 
 	public void registerPublisher(Publisher publisher) {
+		log.debug("registerPublisher:: publisher={}", publisher.getName());
 		publishers.put(publisher.getName(), publisher);
 	}
 
 	public void unregisterPublisher(Publisher publisher) {
+		log.debug("unregisterPublisher:: publisher={}", publisher.getName());
 		publishers.remove(publisher.getName());
 	}
 	
@@ -188,22 +186,28 @@ public class SiteRendererImpl implements
 	
 	public void publishTree(ResourceConfiguration resource)
 			throws SiteConfigurationException {
-		// TODO Auto-generated method stub
-		log.warn("publishTree:: method not implemented");
-		
+		Iterator<ResourceConfiguration> configs = 
+				siteParser.getTreeResources(resource.getResource(), resource.getWebsiteConfiguration());
+		while(configs.hasNext()) {
+			publishResource(configs.next());
+		}
 	}
 
-	public void publishTree(Resource resource)
-			throws SiteConfigurationException {
-		Resource siteRoot = getSiteRoot(resource);
-		SiteConfiguration websiteConfig = new WebsiteConfigImpl(siteRoot);
-		publishTree(resource, websiteConfig);
+	public void publishTree(Resource resource) 
+			                throws SiteConfigurationException {
+		ResourceConfiguration config = siteParser.getResourceConfiguration(resource);
+		publishTree(config);
 	}
 	
-	public void publishTree(Resource resource, 
-			                SiteConfiguration website) 
+	public void publishTree(SiteConfiguration website) 
 			throws SiteConfigurationException {
-		log.warn("publishTree:: method not implemented");
+		publishTree(website.getTopResource());
+	}
+	
+	public void publishTree(Resource resource, SiteConfiguration site) 
+			throws SiteConfigurationException {
+		ResourceConfiguration config = siteParser.getResourceConfiguration(resource, site);
+		publishTree(config);
 	}
 	
 
@@ -225,6 +229,8 @@ public class SiteRendererImpl implements
 				                  publisherName}
 		          );
 
+		if (null == publisherName) publisherName = "default";
+		
 		Publisher publisher = publishers.get(publisherName);
 		if (null == publisher) {
 			String msg = "Publisher " + publisher + " does not exist.";
@@ -267,50 +273,24 @@ public class SiteRendererImpl implements
 
 		log.debug("publishResource:: post event");
 		eventAdmin.postEvent(job); 
-		
 	}
 
 	public void publishResource(Resource resource)
 			throws SiteConfigurationException {
-		Resource siteRoot = getSiteRoot(resource);
-		SiteConfiguration websiteConfig = 
-				new WebsiteConfigImpl(siteRoot);
-		publishResource(resource, websiteConfig);
+		SiteConfiguration site = siteParser.getSiteConfiguration(resource);
+		log.debug("publishResource[1]:: websiteConfig.getPublisherName(){}", site.getPublisherName());
+		publishResource(resource, site);
 	}
 
 	public void publishResource(Resource resource, 
 			                    SiteConfiguration websiteConfig) 
 			throws SiteConfigurationException{
-		String suffix = null;
-		// if not a file or a mimetype, treat as html
-		if (resource.isResourceType("nt:file")) {
-			suffix = "";
-		} else if (resource.isResourceType("mix:mimeType")) {
-			Node node = resource.adaptTo(Node.class);
-			if (null != node) {
-				try {
-					String mimetype = 
-						OsgiUtil.toString(node.getProperty("jcr:mimeType"),"");
-					suffix = mimeTypeService.getExtension(mimetype);
-				} catch (Throwable e) {
-					log.warn("publishResource:: Unable to get mimetype from " +
-							 "mix:mimeType resource: {}", resource.getPath());
-					e.printStackTrace();
-				}
-			}
-		}
-		if (null == suffix) suffix = "html";
-		
-		ResourceRenderConfigImpl resourceConfig = 
-				new ResourceRenderConfigImpl(resource, 
-						                         suffix, 
-						                         null, 
-						                         websiteConfig);
-		
+		log.debug("publishResource[2]:: websiteConfig.getPublisherName(){}", websiteConfig.getPublisherName());
+		ResourceConfiguration resourceConfig = 
+				siteParser.getResourceConfiguration(resource, 
+						                            websiteConfig);
 		publishResource(resourceConfig);
 	}
-	
-	
 	
 	//--------------------------------------------------------------------------
 	// Private discovery methods
@@ -328,22 +308,6 @@ public class SiteRendererImpl implements
 					     " does not contain resource " + resourcePath;
 			throw new SiteConfigurationException(msg);
 		}
-	}
-	
-	private Resource getSiteRoot(Resource resource) {
-		log.debug("getSiteRoot:: resource={}",resource.getName());
-		Resource currentResource = resource;
-		while(null != currentResource) {
-			log.debug("getSiteRoot:: currentResource={}",
-					   currentResource.getName());
-			if (currentResource.isResourceType("terrabeata:Website")) {
-				log.debug("getSiteRoot:: found root={}",resource.getName());
-				return currentResource;
-			}
-			currentResource = currentResource.getParent();
-			
-		}
-		return null;
 	}
 	
 	private void confirmQueue() {
@@ -469,6 +433,7 @@ public class SiteRendererImpl implements
 		props.put("queue.topics", 
 				   new String[] {SiteRendererConstants.PUBLISH_JOB_TOPIC});
 		props.put("queue.type", "ORDERED");
+		log.debug("addQueueConfig - config added");
 		config.update(props);
 	}
 	
@@ -481,94 +446,6 @@ public class SiteRendererImpl implements
 	  }
 	
 	
-	
-	//--------------------------------------------------------------------------
-	// Private WebsiteConfiguration implementation
-	//--------------------------------------------------------------------------
-	
-	private class WebsiteConfigImpl implements SiteConfiguration {
-		
-		private String publisherName;
-		private Resource siteRoot;
-		private String name;
-		
-		public WebsiteConfigImpl (Resource siteRoot) 
-				                         throws SiteConfigurationException {
-			if (null != siteRoot && 
-					siteRoot.isResourceType("terrabeata:Website")) { 
-				Node root = siteRoot.adaptTo(Node.class);
-				String publisher = "default";
-				try {
-					publisher = OsgiUtil.toString(
-						   root.getProperty("terrabeata:publisher"), "default");
-				} catch (Throwable e) {
-					log.warn("Error reading publisher value: {}", e.toString());
-					e.printStackTrace();
-				}
-				this.publisherName = publisher;
-				this.siteRoot = siteRoot;
-				this.name = siteRoot.getName();
-			} else {
-				throw new SiteConfigurationException("Invalid Website " +
-					"root resource: "+siteRoot+
-					". Root must be type terrabeata:Website");
-			}
-		}
-
-		public String getPublisherName() {
-			return publisherName;
-		}
-
-		public Resource getTopResource() {
-			return siteRoot;
-		}
-		
-		public String getName() {
-			return name;
-		}
-		
-	}
-	
-	//--------------------------------------------------------------------------
-	// Private ResourcePublishingConfiguration implementation
-	//--------------------------------------------------------------------------
-	
-	private class ResourceRenderConfigImpl 
-				implements ResourceConfiguration {
-		
-		private SiteConfiguration websiteConfig;
-		private Resource resource;
-		private String suffix;
-		private String[] selectors;
-		
-		public ResourceRenderConfigImpl(Resource resource, String suffix, 
-				                 String[] selectors, 
-				                 SiteConfiguration websiteConfig) {
-			this.resource = resource;
-			this.suffix = suffix;
-			this.selectors = selectors;
-			this.websiteConfig = websiteConfig;
-		}
-
-		public SiteConfiguration getWebsiteConfiguration() {
-			return websiteConfig;
-		}
-
-		public Resource getResource() {
-			return resource;
-		}
-
-		public String getSuffix() {
-			return suffix;
-		}
-
-		public String[] getSelectors() {
-			return selectors;
-		}
-		
-	}
-	
-
 
 	
 }

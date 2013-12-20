@@ -18,7 +18,7 @@ import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.terrabeata.wcm.siteRenderer.api.ResourceRenderer;
+import com.terrabeata.wcm.siteRenderer.api.ResourceRenderingHelper;
 
 @Component (
 		metatype = true,
@@ -26,8 +26,8 @@ import com.terrabeata.wcm.siteRenderer.api.ResourceRenderer;
 		label = "Terra Beata Resource Renderer",
 		createPid = true
 		)
-@Service(value={ResourceRenderer.class})
-public class ResourceRendererImpl implements ResourceRenderer {
+@Service(value={ResourceRenderingHelper.class})
+public class ResourceRendererImpl implements ResourceRenderingHelper {
 	
 	private static final Logger log = 
 			LoggerFactory.getLogger(ResourceRendererImpl.class);

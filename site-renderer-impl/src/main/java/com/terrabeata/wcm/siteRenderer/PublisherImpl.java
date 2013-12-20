@@ -10,13 +10,12 @@ import javax.servlet.ServletContext;
 
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Modified;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.PropertyOption;
 import org.apache.felix.scr.annotations.Reference;
-import org.apache.sling.api.adapter.AdapterManager;
+import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.sling.api.adapter.SlingAdaptable;
 import org.apache.sling.api.resource.LoginException;
 import org.apache.sling.api.resource.Resource;
@@ -24,21 +23,18 @@ import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.commons.osgi.OsgiUtil;
 import org.osgi.framework.BundleContext;
-import org.osgi.service.cm.ConfigurationException;
-import org.osgi.service.cm.ManagedService;
-import org.osgi.service.cm.ManagedServiceFactory;
 import org.osgi.service.component.ComponentContext;
 import org.osgi.service.event.Event;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.terrabeata.wcm.siteRenderer.api.SiteRendererConstants;
-import com.terrabeata.wcm.siteRenderer.api.SiteRenderer;
 import com.terrabeata.wcm.siteRenderer.api.Publisher;
-import com.terrabeata.wcm.siteRenderer.api.ResourceRenderer;
-import com.terrabeata.wcm.siteRenderer.api.Transport;
+import com.terrabeata.wcm.siteRenderer.api.ResourceRenderingHelper;
+import com.terrabeata.wcm.siteRenderer.api.SiteRenderer;
+import com.terrabeata.wcm.siteRenderer.api.SiteRendererConstants;
 import com.terrabeata.wcm.siteRenderer.internal.FTPTransport;
 import com.terrabeata.wcm.siteRenderer.internal.FileTransport;
+import com.terrabeata.wcm.siteRenderer.internal.Transport;
 import com.terrabeata.wcm.siteRenderer.internal.WebDAVTransport;
 
 @Component (
@@ -48,9 +44,6 @@ import com.terrabeata.wcm.siteRenderer.internal.WebDAVTransport;
 		metatype = true,
 		immediate = true
 )
-//@Service(value={JobProcessor.class})
-//@Property(name=JobUtil.PROPERTY_JOB_TOPIC, value="com/terrabeata/sling/publish/publish")
-
 public class PublisherImpl extends SlingAdaptable implements Publisher {
 	
 	private static final Logger log = LoggerFactory.getLogger(PublisherImpl.class);
@@ -89,7 +82,8 @@ public class PublisherImpl extends SlingAdaptable implements Publisher {
 	@Property(description="%publisher.root.directory.description", 
 			  label="Root Directory", 
 			  value="{sling.home}/{publisher.name}/{website.name}")
-	static final String ROOT_DIRECTORY = SiteRendererConstants.PROPERTY_ROOT_DIRECTORY;
+	static final String ROOT_DIRECTORY = 
+								SiteRendererConstants.PROPERTY_ROOT_DIRECTORY;
 	
 	@Property(description="%publisher.url.description", label="Final URL")
 	static final String URL = SiteRendererConstants.PROPERTY_URL;
@@ -97,10 +91,12 @@ public class PublisherImpl extends SlingAdaptable implements Publisher {
 	@Property(description="%publisher.category.description", label="Category")
 	static final String CATEGORY = SiteRendererConstants.PROPERTY_CATEGORY;
 	
-	@Property(description="%publisher.credentials.username.description", label="User name")
+	@Property(description="%publisher.credentials.username.description", 
+			  label="User name")
 	static final String USER_NAME = SiteRendererConstants.PROPERTY_USER_NAME;
 
-	@Property(description="%publisher.credentials.password.description", label="User password")
+	@Property(description="%publisher.credentials.password.description", 
+			  label="User password")
 	static final String PASSWORD = SiteRendererConstants.PROPERTY_PASSWORD;
 
 	//--------------------------------------------------------------------------
@@ -111,7 +107,7 @@ public class PublisherImpl extends SlingAdaptable implements Publisher {
 	private SiteRenderer publishManager;
 	
 	@Reference
-	private ResourceRenderer resourceRenderer;
+	private ResourceRenderingHelper resourceRenderer;
 	
 	@Reference
 	private ResourceResolverFactory resourceResolverFactory;
@@ -125,12 +121,13 @@ public class PublisherImpl extends SlingAdaptable implements Publisher {
 	
 	@Activate
 	private void activate(ComponentContext context) throws Exception {
-		
 		update(context);
-		
-		log.info("Publisher {} of type {} created for {}, pid:{}", new String[]{getName(), Integer.toString(getProtocol()), getHost(), getPID()});
-		
-		
+		log.info("Publisher {} of type {} created for {}, pid:{}", 
+				  new String[]{getName(), 
+				               Integer.toString(getProtocol()), 
+				               getHost(), 
+				               getPID()}
+		        );
 		publishManager.registerPublisher(this);
 	}
 
@@ -180,7 +177,8 @@ public class PublisherImpl extends SlingAdaptable implements Publisher {
 		currentJob = job;
 		
 		String action =
-				OsgiUtil.toString(job.getProperty(SiteRendererConstants.PROPERTY_EVENT_ACTION), "");
+				OsgiUtil.toString(job.getProperty(
+						SiteRendererConstants.PROPERTY_EVENT_ACTION), "");
 		
 		log.debug("process:: action={}", action);
 		
@@ -191,11 +189,16 @@ public class PublisherImpl extends SlingAdaptable implements Publisher {
 			
 			log.debug("[1]");
 			String resourcePath =
-					OsgiUtil.toString(job.getProperty(SiteRendererConstants.PROPERTY_EVENT_RESOURCE_PATH), "");
+					OsgiUtil.toString(job.getProperty(
+					   SiteRendererConstants.PROPERTY_EVENT_RESOURCE_PATH), "");
 			String destinationPath =
-					OsgiUtil.toString(job.getProperty(SiteRendererConstants.PROPERTY_EVENT_DESTINATION_PATH), "");
+					OsgiUtil.toString(job.getProperty(
+				         SiteRendererConstants.PROPERTY_EVENT_DESTINATION_PATH), 
+				         "");
 			String fileName =
-					OsgiUtil.toString(job.getProperty(SiteRendererConstants.PROPERTY_EVENT_FILE_NAME), "");
+					OsgiUtil.toString(job.getProperty(
+							SiteRendererConstants.PROPERTY_EVENT_FILE_NAME), 
+							"");
 			ResourceResolver resourceResolver;
 			log.debug("[2]");
 			try {
@@ -210,7 +213,8 @@ public class PublisherImpl extends SlingAdaptable implements Publisher {
 				log.warn("process:: Unable to resolve resource, {}", resourcePath);
 				return false;
 			}
-			log.debug("process:: resource name:{}, fileName:{}",resource.getName(),fileName);
+			log.debug("process:: resource name:{}, fileName:{}",
+					   resource.getName(),fileName);
 			if (resource.getName() != fileName) { // take for granted selectors and suffix added to file - pull those out
 				log.debug("process:: resource name is not equal to filename");
 				String[] nameParts = fileName.split("\\.");

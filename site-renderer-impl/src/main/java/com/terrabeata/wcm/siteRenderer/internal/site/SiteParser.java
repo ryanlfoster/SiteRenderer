@@ -1,34 +1,40 @@
 package com.terrabeata.wcm.siteRenderer.internal.site;
 
+import java.util.Arrays;
 import java.util.Iterator;
-import java.util.Map;
 
-import javax.management.Query;
+import javax.jcr.Node;
 
-import org.apache.jackrabbit.commons.JcrUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.sling.api.resource.Resource;
-import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ValueMap;
+import org.apache.sling.commons.mime.MimeTypeService;
 import org.apache.sling.commons.osgi.OsgiUtil;
-import org.apache.sling.event.impl.jobs.jcr.JCRHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.sun.corba.se.impl.orbutil.graph.Node;
-import com.terrabeata.wcm.siteRenderer.PublisherImpl;
+import com.terrabeata.wcm.siteRenderer.api.ResourceConfiguration;
+import com.terrabeata.wcm.siteRenderer.api.SiteConfiguration;
+import com.terrabeata.wcm.siteRenderer.api.SiteConfigurationException;
 import com.terrabeata.wcm.siteRenderer.api.SiteRendererConstants;
 
 public class SiteParser {
 	
 	private static final Logger log = LoggerFactory.getLogger(SiteParser.class);
 	
-	private ResourceResolver resourceResolver;
+	private MimeTypeService mimeTypeService;
 	
-	public SiteParser(ResourceResolver resourceResolver) {
-		this.resourceResolver = resourceResolver;
+	public SiteParser(MimeTypeService mimeTypeService) {
+		this.mimeTypeService = mimeTypeService;
 	}
 
-	public Resource getSiteRoot(Resource member) {
+	public SiteConfiguration getSiteConfiguration(Resource member) 
+			throws SiteConfigurationException {
+		if (member == null || member.getPath() == null) {
+			throw new SiteConfigurationException(
+					"Unable to get configuration. Invalid value for resource");
+		}
+		
 		log.debug("getSiteRoot:: member={}", member.getPath());
 		
 		Resource currentResource = member;
@@ -43,16 +49,107 @@ public class SiteParser {
 							                                equals(mixins[i])) {
 						log.debug("Found site root: {}", 
 								   currentResource.getParent());
-						return currentResource;
+						return new WebsiteConfigImpl(currentResource);
 					}
 						
 				}
 			}
 			currentResource = currentResource.getParent();
 		}
-		
 		return null;
 	}
 	
+	public Iterator<ResourceConfiguration> getTreeResources(Resource top, SiteConfiguration site) throws SiteConfigurationException {
+		Resource[] resources = getRenderableChildren(top);
+		if (! site.getTopResource().getPath().equals(top.getPath())) {
+			resources = (Resource[])ArrayUtils.add(resources, 0, top);
+		}
+		ResourceConfiguration[] configs = new ResourceConfiguration[resources.length];
+		for (int i = 0; i < resources.length; i++) {
+			ResourceConfiguration config = getResourceConfiguration(resources[i], site);
+			configs[i] = config;
+		}
+		return Arrays.asList(configs).iterator();
+	}
+	
+	public Iterator<ResourceConfiguration> getSiteResourceConfigurations(SiteConfiguration site) throws SiteConfigurationException {
+		return getTreeResources(site.getTopResource(), site);
+	}
+	
+	public ResourceConfiguration getResourceConfiguration(Resource resource) 
+			throws SiteConfigurationException {
+		SiteConfiguration site = getSiteConfiguration(resource);
+		return getResourceConfiguration(resource, site);
+	}
+	
+	public ResourceConfiguration getResourceConfiguration(Resource resource, 
+			SiteConfiguration site) {
+		String suffix = null;
+		// if not a file or a mimetype, treat as html
+		if (resource.isResourceType("nt:file")) {
+			suffix = "";
+		} else if (resource.isResourceType("mix:mimeType")) {
+			Node node = resource.adaptTo(Node.class);
+			if (null != node) {
+				try {
+					String mimetype = 
+						OsgiUtil.toString(node.getProperty("jcr:mimeType"),"");
+					suffix = mimeTypeService.getExtension(mimetype);
+				} catch (Throwable e) {
+					log.warn("publishResource:: Unable to get mimetype from " +
+							 "mix:mimeType resource: {}", resource.getPath());
+					e.printStackTrace();
+				}
+			}
+		}
+		if (null == suffix) suffix = "html";
+		
+		ResourceConfiguration resourceConfig = 
+				getResourceConfiguration(resource, 
+						                         suffix, 
+						                         null, 
+						                         site);
+		return resourceConfig;
+	}
+	
+	public ResourceConfiguration getResourceConfiguration(Resource item, String suffix, String[] selectors, SiteConfiguration site) {
+		return new ResourceRenderConfigImpl(item, suffix, selectors, site);
+	}
+
+	private Resource[] getRenderableChildren(Resource parent) {
+		log.debug("getRenderableChildren:: parent={}",parent.getPath());
+		Resource[] resources = new Resource[0];
+		Resource[] temp;
+		Resource[] childResources;
+		Iterator<Resource> children = parent.listChildren();
+		while(children.hasNext()) {
+			Resource child = children.next();
+			resources = (Resource[])ArrayUtils.add(resources, 0, child);
+			log.debug("getRenderableChildren:: child={}",child.getPath());
+			if (child.getName().equals("jcr:content")) continue;
+			log.debug("getRenderableChildren:: adding child");
+			childResources = getRenderableChildren(child);
+			temp = new Resource[resources.length+childResources.length];
+			int i = 0;
+			for (i = 0; i < resources.length; i++) {
+				temp[i] = resources[i];
+			}
+			for (int j = 0; j < childResources.length; j++) {
+				temp[i+j] = childResources[j];
+			}
+			resources = temp;
+		}
+		log.debug("getRenderableChildren:: total resource={}", resources.length);
+		return resources;
+	}
+	
+	private Resource[] concat(Resource[] A, Resource[] B) {
+		   int aLen = A.length;
+		   int bLen = B.length;
+		   Resource[] C= new Resource[aLen+bLen];
+		   System.arraycopy(A, 0, C, 0, aLen);
+		   System.arraycopy(B, 0, C, aLen, bLen);
+		   return C;
+		}
 
 }

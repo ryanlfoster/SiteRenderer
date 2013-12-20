@@ -2,4 +2,6 @@
 
 [terrabeata:Website]
   mixin
+  - terrabeata:siteName (string) mandatory
   - terrabeata:publisher (string)
+  - terrabeata:excludeNodeTypes (string) multiple

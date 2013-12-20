@@ -47,9 +47,9 @@ SiteConfiguration website = new SiteConfiguration() {
 };
 
 
-Resource res = resourceResolver.getResource("/content/terrabeata-publish/sample");
+Resource res = resourceResolver.getResource("/content/terrabeata-site-renderer-sample/sample");
 
-publisherManager.publishResource(res, website);
+publisherManager.publishTree(res);
 %>
 
 </body>
