@@ -16,7 +16,6 @@
     <!-- ====================================================================== -->
     <artifactId>site-renderer-api</artifactId>
     <packaging>bundle</packaging>
-    <version>0.2.0-SNAPSHOT</version>
     <name>Terra Beata Website Rendering API</name>
     <description>Terra Beata Website Rendering API</description>
 
