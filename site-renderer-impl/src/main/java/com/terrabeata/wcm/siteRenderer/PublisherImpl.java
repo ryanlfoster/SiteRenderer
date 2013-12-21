@@ -29,9 +29,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.terrabeata.wcm.siteRenderer.api.Publisher;
+import com.terrabeata.wcm.siteRenderer.api.PublisherPropertyConstants;
 import com.terrabeata.wcm.siteRenderer.api.ResourceRenderingHelper;
 import com.terrabeata.wcm.siteRenderer.api.SiteRenderer;
-import com.terrabeata.wcm.siteRenderer.api.SiteRendererConstants;
+import com.terrabeata.wcm.siteRenderer.api.SiteRendererJobConstants;
 import com.terrabeata.wcm.siteRenderer.internal.FTPTransport;
 import com.terrabeata.wcm.siteRenderer.internal.FileTransport;
 import com.terrabeata.wcm.siteRenderer.internal.Transport;
@@ -61,13 +62,13 @@ public class PublisherImpl extends SlingAdaptable implements Publisher {
 	//--------------------------------------------------------------------------
 	
 	@Property(description="%publisher.name.description", label="Name")
-	static final String NAME = SiteRendererConstants.PROPERTY_NAME;
+	static final String NAME = PublisherPropertyConstants.PROPERTY_NAME;
 	
 	@Property(description="%publisher.host.description", label="Remote Host")
-	static final String HOST = SiteRendererConstants.PROPERTY_HOST;
+	static final String HOST = PublisherPropertyConstants.PROPERTY_HOST;
 	
 	@Property(description="%publisher.port.description", label="Port")
-	static final String PORT = SiteRendererConstants.PROPERTY_PORT;
+	static final String PORT = PublisherPropertyConstants.PROPERTY_PORT;
 	
 	@Property(description="%publisher.protocol.description", label="Protocol", 
 			  value="file",
@@ -77,27 +78,28 @@ public class PublisherImpl extends SlingAdaptable implements Publisher {
 				@PropertyOption(name="webdav", value="WebDAV"),
 				@PropertyOption(name="file", value="Local File Directory")
 	})
-	static final String PROTOCOL = SiteRendererConstants.PROPERTY_PROTOCOL;
+	static final String PROTOCOL = PublisherPropertyConstants.PROPERTY_PROTOCOL;
 	
 	@Property(description="%publisher.root.directory.description", 
 			  label="Root Directory", 
 			  value="{sling.home}/{publisher.name}/{website.name}")
 	static final String ROOT_DIRECTORY = 
-								SiteRendererConstants.PROPERTY_ROOT_DIRECTORY;
+	 						PublisherPropertyConstants.PROPERTY_ROOT_DIRECTORY;
 	
 	@Property(description="%publisher.url.description", label="Final URL")
-	static final String URL = SiteRendererConstants.PROPERTY_URL;
+	static final String URL = PublisherPropertyConstants.PROPERTY_URL;
 	
 	@Property(description="%publisher.category.description", label="Category")
-	static final String CATEGORY = SiteRendererConstants.PROPERTY_CATEGORY;
+	static final String CATEGORY = PublisherPropertyConstants.PROPERTY_CATEGORY;
 	
 	@Property(description="%publisher.credentials.username.description", 
 			  label="User name")
-	static final String USER_NAME = SiteRendererConstants.PROPERTY_USER_NAME;
+	static final String USER_NAME = 
+	                              PublisherPropertyConstants.PROPERTY_USER_NAME;
 
 	@Property(description="%publisher.credentials.password.description", 
 			  label="User password")
-	static final String PASSWORD = SiteRendererConstants.PROPERTY_PASSWORD;
+	static final String PASSWORD = PublisherPropertyConstants.PROPERTY_PASSWORD;
 
 	//--------------------------------------------------------------------------
 	// Injected values
@@ -144,14 +146,14 @@ public class PublisherImpl extends SlingAdaptable implements Publisher {
 		
 		switch (getProtocol())
 		{
-		case SiteRendererConstants.PROTOCOL_WEBDAV :
+		case PublisherPropertyConstants.PROTOCOL_WEBDAV :
 			transport = new WebDAVTransport(this);
 			break;
-		case SiteRendererConstants.PROTOCOL_FTP :
-		case SiteRendererConstants.PROTOCOL_SFTP :
+		case PublisherPropertyConstants.PROTOCOL_FTP :
+		case PublisherPropertyConstants.PROTOCOL_SFTP :
 			transport = new FTPTransport(this);
 			break;
-		case SiteRendererConstants.PROTOCOL_FILE :
+		case PublisherPropertyConstants.PROTOCOL_FILE :
 		default :
 			transport = new FileTransport(this);
 			break;
@@ -178,11 +180,11 @@ public class PublisherImpl extends SlingAdaptable implements Publisher {
 		
 		String action =
 				OsgiUtil.toString(job.getProperty(
-						SiteRendererConstants.PROPERTY_EVENT_ACTION), "");
+						SiteRendererJobConstants.PROPERTY_EVENT_ACTION), "");
 		
 		log.debug("process:: action={}", action);
 		
-		if (action == SiteRendererConstants.ACTION_FILE_ADD) {
+		if (action == SiteRendererJobConstants.ACTION_FILE_ADD) {
 			
 			String[] selectors = null;
 			String suffix = null;
@@ -190,14 +192,14 @@ public class PublisherImpl extends SlingAdaptable implements Publisher {
 			log.debug("[1]");
 			String resourcePath =
 					OsgiUtil.toString(job.getProperty(
-					   SiteRendererConstants.PROPERTY_EVENT_RESOURCE_PATH), "");
+					   SiteRendererJobConstants.PROPERTY_EVENT_RESOURCE_PATH), "");
 			String destinationPath =
 					OsgiUtil.toString(job.getProperty(
-				         SiteRendererConstants.PROPERTY_EVENT_DESTINATION_PATH), 
+				         SiteRendererJobConstants.PROPERTY_EVENT_DESTINATION_PATH), 
 				         "");
 			String fileName =
 					OsgiUtil.toString(job.getProperty(
-							SiteRendererConstants.PROPERTY_DESTINATION_FILE_NAME), 
+							SiteRendererJobConstants.PROPERTY_DESTINATION_FILE_NAME), 
 							"");
 			ResourceResolver resourceResolver;
 			log.debug("[2]");
@@ -249,7 +251,7 @@ public class PublisherImpl extends SlingAdaptable implements Publisher {
 	}
 
 	public int getProtocol() {
-		return OsgiUtil.toInteger(properties.get(PROTOCOL), SiteRendererConstants.PROTOCOL_FILE);
+		return OsgiUtil.toInteger(properties.get(PROTOCOL), PublisherPropertyConstants.PROTOCOL_FILE);
 	}
 
 	public String getRootDirectory() {

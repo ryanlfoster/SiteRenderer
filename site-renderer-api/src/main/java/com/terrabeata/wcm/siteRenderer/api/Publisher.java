@@ -5,6 +5,7 @@ import org.apache.sling.event.jobs.JobProcessor;
 
 public interface Publisher extends JobProcessor, Adaptable{
 	
+	
 	String getName();
 	String getHost();
 	int getPort();

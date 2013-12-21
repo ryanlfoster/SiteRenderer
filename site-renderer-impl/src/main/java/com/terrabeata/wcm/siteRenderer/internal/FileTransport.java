@@ -15,7 +15,9 @@ import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.terrabeata.wcm.siteRenderer.api.SiteRendererConstants;
+import com.terrabeata.wcm.siteRenderer.PublisherImpl;
+import com.terrabeata.wcm.siteRenderer.api.PublisherPropertyConstants;
+import com.terrabeata.wcm.siteRenderer.api.SiteRendererJobConstants;
 import com.terrabeata.wcm.siteRenderer.api.Publisher;
 
 public class FileTransport extends AbstractTransport {
@@ -24,8 +26,8 @@ public class FileTransport extends AbstractTransport {
 			LoggerFactory.getLogger(FileTransport.class);
 	
 	private static final String DEFAULT_ROOT_PATH = 
-			                    SiteRendererConstants.SLING_HOME_TAG + "/websites/" + 
-		                        SiteRendererConstants.WEBSITE_NAME_TAG;
+			PublisherPropertyConstants.SLING_HOME_TAG + "/websites/" + 
+			PublisherPropertyConstants.WEBSITE_NAME_TAG;
 	
 	public FileTransport (Publisher publisher)
 	{
@@ -150,7 +152,7 @@ public class FileTransport extends AbstractTransport {
 	private String getRootDirectoryPath() {
 		Map<String, Object> map = getPublisher().adaptTo(Map.class);
 		String rootPath = 
-				OsgiUtil.toString(map.get(SiteRendererConstants.PROPERTY_ROOT_DIRECTORY), "");
+				OsgiUtil.toString(map.get(PublisherPropertyConstants.PROPERTY_ROOT_DIRECTORY), "");
 		
 		log.debug("getRootDirectoryPath[2]:: rootPath={}",rootPath);
 		
@@ -160,11 +162,11 @@ public class FileTransport extends AbstractTransport {
 		if (null == rootPath || "" == rootPath) {
 			rootPath = DEFAULT_ROOT_PATH;
 		} 
-		rootPath = rootPath.replace(SiteRendererConstants.SLING_HOME_TAG, slingHome);
-		rootPath = rootPath.replace(SiteRendererConstants.PUBLISHER_NAME_TAG,
-				 OsgiUtil.toString(map.get(SiteRendererConstants.PROPERTY_NAME),"unknown"));
-		rootPath = rootPath.replace(SiteRendererConstants.WEBSITE_NAME_TAG, 
-				OsgiUtil.toString(map.get(SiteRendererConstants.PROPERTY_EVENT_WEBSITE_NAME),"unknown"));
+		rootPath = rootPath.replace(PublisherPropertyConstants.SLING_HOME_TAG, slingHome);
+		rootPath = rootPath.replace(PublisherPropertyConstants.PUBLISHER_NAME_TAG,
+				 OsgiUtil.toString(map.get(PublisherPropertyConstants.PROPERTY_NAME),"unknown"));
+		rootPath = rootPath.replace(PublisherPropertyConstants.WEBSITE_NAME_TAG, 
+				OsgiUtil.toString(map.get(SiteRendererJobConstants.PROPERTY_EVENT_WEBSITE_NAME),"unknown"));
 		
 		if (rootPath.endsWith("/") != true) {
 			rootPath += "/";

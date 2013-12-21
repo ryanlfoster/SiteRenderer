@@ -7,7 +7,7 @@ package com.terrabeata.wcm.siteRenderer.api;
  * @author deke@terrabeata.com
  *
  */
-public class SiteRendererConstants {
+public class SiteRendererJobConstants {
 	
 	/**
 	 * The event topic for publish jobs
@@ -22,6 +22,7 @@ public class SiteRendererConstants {
 	 */
 	public final static String PROPERTY_EVENT_PUBLISHER_NAME = 
 			"event.publisher.name";
+	
 	/**
 	 * Publish job property. The path to the resource to be published. This is 
 	 * a mandatory value for add file action jobs only. Publishers ignore this 
@@ -29,12 +30,14 @@ public class SiteRendererConstants {
 	 */
 	public final static String PROPERTY_EVENT_RESOURCE_PATH = 
 			"event.publisher.resource.path";
+	
 	/**
 	 * Publish job property. The path, relative to the Publisher root path, 
 	 * that the item being acted on is/will be. This is a mandatory value.
 	 */
 	public final static String PROPERTY_EVENT_DESTINATION_PATH = 
 			"event.publisher.destination.path";
+	
 	/**
 	 * Publish job property. If true, the Publisher will overwrite the value
 	 * at the publish destination even if the file at that location has a 
@@ -44,6 +47,7 @@ public class SiteRendererConstants {
 	 */
 	public final static String PROPERTY_EVENT_FORCE_OVERWRITE = 
 			"event.publisher.force-overwrite";
+	
 	/**
 	 * Publish job property. The action the Publisher should perform for the
 	 * job. The is a mandatory property.
@@ -51,7 +55,10 @@ public class SiteRendererConstants {
 	public final static String PROPERTY_EVENT_ACTION = 
 			"event.publisher.action";
 
-	
+	/**
+	 * Publish job property. The name of the file when created on the 
+	 * destination.
+	 */
 	public final static String PROPERTY_DESTINATION_FILE_NAME = 
 			"event.publisher.destination.filename";
 	
@@ -65,24 +72,11 @@ public class SiteRendererConstants {
 	public final static String PROPERTY_EVENT_PAYLOAD_TIMESTAMP = 
 			"event.publisher.payload.timestamp";
 	
+	/**
+	 * The Web site name property.
+	 */
 	public final static String PROPERTY_EVENT_WEBSITE_NAME =
 			"event.publisher.website.name";
-	
-	final public static String SLING_HOME_TAG = "{sling.home}";
-	final public static String WEBSITE_NAME_TAG = "{website.name}";
-	final public static String PUBLISHER_NAME_TAG = "{publisher.name}";
-	
-	public static final String PROPERTY_NAME = "publisher.name";
-	public static final String PROPERTY_HOST = "publisher.host";
-	public static final String PROPERTY_PORT = "publisher.port";
-	public static final String PROPERTY_PROTOCOL = "publisher.type";
-	public static final String PROPERTY_ROOT_DIRECTORY = "publisher.root.directory";
-	public static final String PROPERTY_URL = "publisher.url";
-	public static final String PROPERTY_CATEGORY = "publisher.category";
-	public static final String PROPERTY_USER_NAME = "publisher.credentials.username";
-	public static final String PROPERTY_PASSWORD = "publisher.credentials.password";
-	
-
 	
 	/**
 	 * Value for the publish job PROPERTY_ACTION property. Publisher should 
@@ -90,12 +84,14 @@ public class SiteRendererConstants {
 	 */
 	public final static String ACTION_FILE_DELETE = 
 			"action.publisher.file.delete";
+	
 	/**
 	 * Value for the publish job PROPERTY_ACTION property. Publisher should 
 	 * add the file specified by PROPERTY_FILE_NAME at the destination path.
 	 */
 	public final static String ACTION_FILE_ADD = 
 			"action.publisher.file.add";
+	
 	/**
 	 * Value for the publish job PROPERTY_ACTION property. Publisher should 
 	 * delete the directory specified by PROPERTY_FILE_NAME at the destination 
@@ -103,6 +99,7 @@ public class SiteRendererConstants {
 	 */
 	public final static String ACTION_DIRECTORY_DELETE = 
 			"action.publisher.directory.delete";
+	
 	/**
 	 * Value for the publish job PROPERTY_ACTION property. Publisher should 
 	 * create the directory specified by PROPERTY_FILE_NAME at the destination 
@@ -110,36 +107,5 @@ public class SiteRendererConstants {
 	 */
 	public final static String ACTION_DIRECTORY_CREATE = 
 			"action.publisher.directory.add";
-
-	
-	/**
-	 * Value for Publisher protocol. The value is not known.
-	 */
-	public final static int PROTOCOL_UNKNOWN = 0;
-	/**
-	 * Value for Publisher protocol. The publisher renders published content to
-	 * the file system.
-	 */
-	public final static int PROTOCOL_FILE = 1;
-	/**
-	 * Value for Publisher protocol. The publisher renders published content to
-	 * a server using the WebDAV protocol.
-	 */
-	public final static int PROTOCOL_WEBDAV = 100;
-	/**
-	 * Value for Publisher protocol. The publisher renders published content to
-	 * a server using the FTP protocol.
-	 */
-	public final static int PROTOCOL_FTP = 200;
-	/**
-	 * Value for Publisher protocol. The publisher renders published content to
-	 * a server using the Secure FTP (FTP) protocol.
-	 */
-	public final static int PROTOCOL_SFTP = 201;
-	
-	
-	public final static String SLING_HOME_DIRECTORY = "{sling.home}";
-	
-	
 	
 }

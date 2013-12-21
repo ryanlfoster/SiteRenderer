@@ -39,18 +39,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.terrabeata.wcm.siteRenderer.api.Publisher;
+import com.terrabeata.wcm.siteRenderer.api.PublisherPropertyConstants;
 import com.terrabeata.wcm.siteRenderer.api.ResourceConfiguration;
 import com.terrabeata.wcm.siteRenderer.api.SiteConfiguration;
 import com.terrabeata.wcm.siteRenderer.api.SiteConfigurationException;
 import com.terrabeata.wcm.siteRenderer.api.SiteRenderer;
-import com.terrabeata.wcm.siteRenderer.api.SiteRendererConstants;
+import com.terrabeata.wcm.siteRenderer.api.SiteRendererJobConstants;
 import com.terrabeata.wcm.siteRenderer.internal.site.SiteParser;
 import com.terrabeata.wcm.siteRenderer.internal.site.WebsiteConfigImpl;
 
 @Component(immediate=true)
 @Service(value={SiteRenderer.class,EventHandler.class})
 @Property(name = EventConstants.EVENT_TOPIC, 
-          value=SiteRendererConstants.PUBLISH_JOB_TOPIC)
+          value=SiteRendererJobConstants.PUBLISH_JOB_TOPIC)
 public class SiteRendererImpl implements 
 								    SiteRenderer, EventHandler {
 	
@@ -136,7 +137,7 @@ public class SiteRendererImpl implements
 		{
 			String publisherName = OsgiUtil.toString(
 					event.getProperty(
-						SiteRendererConstants.PROPERTY_EVENT_PUBLISHER_NAME), 
+						SiteRendererJobConstants.PROPERTY_EVENT_PUBLISHER_NAME), 
 						DEFAULT_PUBLISHER_NAME);
 		
 			if (publishers.containsKey(publisherName))
@@ -178,7 +179,7 @@ public class SiteRendererImpl implements
 			Queue currentQueue = queues.next();
 			String[] topics = currentQueue.getConfiguration().getTopics();
 			for (int i = 0; i < topics.length; i++) {
-				if (topics[i] == SiteRendererConstants.PUBLISH_JOB_TOPIC)
+				if (topics[i] == SiteRendererJobConstants.PUBLISH_JOB_TOPIC)
 					return currentQueue;
 			}
 		}
@@ -256,18 +257,18 @@ public class SiteRendererImpl implements
 		}
 		
 		Map<String, Object> map = new HashMap<String, Object>();
-		map.put(SiteRendererConstants.PROPERTY_EVENT_RESOURCE_PATH, path);
-		map.put(SiteRendererConstants.PROPERTY_EVENT_ACTION, 
-				SiteRendererConstants.ACTION_FILE_ADD);
+		map.put(SiteRendererJobConstants.PROPERTY_EVENT_RESOURCE_PATH, path);
+		map.put(SiteRendererJobConstants.PROPERTY_EVENT_ACTION, 
+				SiteRendererJobConstants.ACTION_FILE_ADD);
 
-		map.put(SiteRendererConstants.PROPERTY_EVENT_PUBLISHER_NAME, 
+		map.put(SiteRendererJobConstants.PROPERTY_EVENT_PUBLISHER_NAME, 
 				                                                 publisherName);
-		map.put(SiteRendererConstants.PROPERTY_EVENT_DESTINATION_PATH, 
+		map.put(SiteRendererJobConstants.PROPERTY_EVENT_DESTINATION_PATH, 
 				                                               destinationPath);
-		map.put(SiteRendererConstants.PROPERTY_EVENT_WEBSITE_NAME, websiteName);
-		map.put(SiteRendererConstants.PROPERTY_DESTINATION_FILE_NAME, fileName);
+		map.put(SiteRendererJobConstants.PROPERTY_EVENT_WEBSITE_NAME, websiteName);
+		map.put(SiteRendererJobConstants.PROPERTY_DESTINATION_FILE_NAME, fileName);
 		map.put(JobUtil.PROPERTY_JOB_TOPIC, 
-				                       SiteRendererConstants.PUBLISH_JOB_TOPIC);
+				                       SiteRendererJobConstants.PUBLISH_JOB_TOPIC);
 		map.put(JobUtil.PROPERTY_JOB_NAME, UUID.randomUUID().toString());
 		
 		Event job = new Event(JobUtil.TOPIC_JOB, map);
@@ -340,7 +341,7 @@ public class SiteRendererImpl implements
 			props.put("queue.retrydelay", 2000);
 			props.put("queue.runlocal", true);
 			props.put("queue.topics", 
-					   new String[] {SiteRendererConstants.PUBLISH_JOB_TOPIC});
+					   new String[] {SiteRendererJobConstants.PUBLISH_JOB_TOPIC});
 			props.put("queue.type", "ORDERED");
 			config.update(props);
 			log.debug("confirmQueue:: Queue created");
@@ -395,13 +396,12 @@ public class SiteRendererImpl implements
 						PublisherImpl.class.getName());
 		// create default queue
 		Dictionary<String, Object> props = new Hashtable<String, Object>();
-		props.put(SiteRendererConstants.PROPERTY_NAME, 
-				DEFAULT_PUBLISHER_NAME);
-		props.put(SiteRendererConstants.PROPERTY_PROTOCOL, "file");
-		props.put(SiteRendererConstants.PROPERTY_EVENT_DESTINATION_PATH,
-				SiteRendererConstants.SLING_HOME_TAG + "/" +
-		        SiteRendererConstants.PUBLISHER_NAME_TAG + "/" +
-			    SiteRendererConstants.WEBSITE_NAME_TAG);
+		props.put(PublisherPropertyConstants.PROPERTY_NAME, DEFAULT_PUBLISHER_NAME);
+		props.put(PublisherPropertyConstants.PROPERTY_PROTOCOL, "file");
+		props.put(PublisherPropertyConstants.PROPERTY_DESTINATION_PATH,
+				PublisherPropertyConstants.SLING_HOME_TAG + "/" +
+				PublisherPropertyConstants.PUBLISHER_NAME_TAG + "/" +
+				PublisherPropertyConstants.WEBSITE_NAME_TAG);
 		config.update(props);
 	}
 	
@@ -431,7 +431,7 @@ public class SiteRendererImpl implements
 		props.put("queue.retrydelay", 2000);
 		props.put("queue.runlocal", true);
 		props.put("queue.topics", 
-				   new String[] {SiteRendererConstants.PUBLISH_JOB_TOPIC});
+				   new String[] {SiteRendererJobConstants.PUBLISH_JOB_TOPIC});
 		props.put("queue.type", "ORDERED");
 		log.debug("addQueueConfig - config added");
 		config.update(props);

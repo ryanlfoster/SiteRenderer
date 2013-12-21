@@ -20,8 +20,8 @@ import com.terrabeata.wcm.siteRenderer.api.SiteConfiguration;
 import com.terrabeata.wcm.siteRenderer.internal.site.SiteParser;
 
 @Component(
-        label = "Site Renderer Adapter Factory",
-        description = "",
+        label = "Site Renderer Configuration Adapter Factory",
+        description = "Provide an adapter factory for converting Resources to Site Renderer configurations",
         metatype = false,
         immediate = false
 )
@@ -53,10 +53,10 @@ import com.terrabeata.wcm.siteRenderer.internal.site.SiteParser;
     )
 })
 @Service
-public class SiteRendererAdapterFactory implements AdapterFactory {
+public class ResourceToConfigurationAdapterFactory implements AdapterFactory {
 	
 	private static final Logger log = LoggerFactory
-            .getLogger(SiteRendererAdapterFactory.class);
+            .getLogger(ResourceToConfigurationAdapterFactory.class);
 	
 	@Reference
 	private MimeTypeService mimeTypeService;
