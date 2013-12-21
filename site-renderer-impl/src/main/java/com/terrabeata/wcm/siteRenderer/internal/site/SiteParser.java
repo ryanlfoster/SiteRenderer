@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import com.terrabeata.wcm.siteRenderer.api.ResourceConfiguration;
 import com.terrabeata.wcm.siteRenderer.api.SiteConfiguration;
 import com.terrabeata.wcm.siteRenderer.api.SiteConfigurationException;
-import com.terrabeata.wcm.siteRenderer.api.SiteRendererConstants;
 
 public class SiteParser {
 	
@@ -30,6 +29,7 @@ public class SiteParser {
 
 	public SiteConfiguration getSiteConfiguration(Resource member) 
 			throws SiteConfigurationException {
+		log.debug("getSiteConfiguration::");
 		if (member == null || member.getPath() == null) {
 			throw new SiteConfigurationException(
 					"Unable to get configuration. Invalid value for resource");
@@ -45,7 +45,8 @@ public class SiteParser {
 				String[] mixins =
 						properties.get("jcr:mixinTypes", String[].class);
 				for (int i = 0; i < mixins.length; i++) {
-					if (SiteRendererConstants.WEBSITE_ROOT_MIXIN.
+					log.debug("getSiteConfiguration:: mixin[{}}={}", i, mixins[i]);
+					if (SiteRendererMixinConstants.SITE_RENDER_MIXIN.
 							                                equals(mixins[i])) {
 						log.debug("Found site root: {}", 
 								   currentResource.getParent());
@@ -56,30 +57,40 @@ public class SiteParser {
 			}
 			currentResource = currentResource.getParent();
 		}
-		return null;
+		throw new SiteConfigurationException("Unable to find site root for " +
+					member.getPath());
 	}
 	
-	public Iterator<ResourceConfiguration> getTreeResources(Resource top, SiteConfiguration site) throws SiteConfigurationException {
+	public Iterator<ResourceConfiguration> getTreeResources(Resource top, 
+			SiteConfiguration site) throws SiteConfigurationException {
 		Resource[] resources = getRenderableChildren(top);
 		resources = (Resource[])ArrayUtils.add(resources, 0, top);
-		ResourceConfiguration[] configs = new ResourceConfiguration[resources.length];
+		ResourceConfiguration[] configs = 
+					new ResourceConfiguration[resources.length];
 		for (int i = 0; i < resources.length; i++) {
-			ResourceConfiguration config = getResourceConfiguration(resources[i], site);
+			ResourceConfiguration config = 
+					 getResourceConfiguration(resources[i], site);
 			configs[i] = config;
 		}
 		return Arrays.asList(configs).iterator();
 	}
 	
-	public Iterator<ResourceConfiguration> getSiteResourceConfigurations(SiteConfiguration site) throws SiteConfigurationException {
-		return getTreeResources(site.getTopResource(), site);
+	public Iterator<ResourceConfiguration> getSiteResourceConfigurations(
+			                                             SiteConfiguration site) 
+			                                 throws SiteConfigurationException {
+		
+		return getTreeResources(site.getSiteRoot(), site);
+		
 	}
 	
 	public ResourceConfiguration getResourceConfiguration(Resource resource) 
 			throws SiteConfigurationException {
-		return getResourceConfiguration(resource, "");	
+		String name = resource.getName();
+		return getResourceConfiguration(resource, name);	
 	}
 	
-	public ResourceConfiguration getResourceConfiguration(Resource resource, String name) 
+	public ResourceConfiguration getResourceConfiguration(Resource resource, 
+														  String name) 
 			throws SiteConfigurationException {
 		SiteConfiguration site = getSiteConfiguration(resource);
 		return getResourceConfiguration(resource, name, site);
@@ -87,7 +98,8 @@ public class SiteParser {
 	
 	public ResourceConfiguration getResourceConfiguration(Resource resource, 
 			SiteConfiguration site) throws SiteConfigurationException {
-		return getResourceConfiguration(resource, "", site);
+		
+		return getResourceConfiguration(resource, resource.getName(), site);
 	}
 
 	public ResourceConfiguration getResourceConfiguration(Resource resource, 
@@ -110,24 +122,27 @@ public class SiteParser {
 				}
 			}
 		}
-		if (null == suffix) suffix = "html";
+		if (null == suffix) suffix = site.getDefaultSuffix();
 		
 		ResourceConfiguration resourceConfig = 
 				getResourceConfiguration(resource,
-						                         "",
+						                         name,
 						                         suffix,
 						                         null,
 						                         site);
 		return resourceConfig;
 	}
 	
-	public ResourceConfiguration getResourceConfiguration(Resource item, String suffix, String[] selectors, SiteConfiguration site) {
+	public ResourceConfiguration getResourceConfiguration(Resource item, 
+			        String suffix, String[] selectors, SiteConfiguration site) {
 		return getResourceConfiguration(item, null, suffix, selectors, site);
 	}
 	
 	public ResourceConfiguration getResourceConfiguration(Resource item, 
-			String name, String suffix, String[] selectors, SiteConfiguration site) {
-		return new ResourceRenderConfigImpl(item, name, suffix, selectors, site);
+			String name, String suffix, String[] selectors, 
+			                                           SiteConfiguration site) {
+		return new ResourceRenderConfigImpl(item, name, suffix, 
+				                            selectors, site);
 	}
 
 	private Resource[] getRenderableChildren(Resource parent) {
@@ -153,7 +168,8 @@ public class SiteParser {
 			}
 			resources = temp;
 		}
-		log.debug("getRenderableChildren:: total resource={}", resources.length);
+		log.debug("getRenderableChildren:: total resource={}", 
+				   resources.length);
 		return resources;
 	}
 

@@ -1,6 +1,6 @@
 {
 	"jcr:primaryType":"sling:Folder",
-	"jcr:mixinTypes":["terrabeata:Website","sling:Resource"],
-	"sling:resourceType":"terrabeata-site-renderer/components/common",
-	"terrabeata:siteName":"test"
+    "jcr:mixinTypes":["siteRender:Website","sling:Resource"],
+    "sling:resourceType":"terrabeata-site-renderer/components/common",
+    "siteRender:siteName":"test"
 }

@@ -45,6 +45,7 @@ import com.terrabeata.wcm.siteRenderer.api.SiteConfigurationException;
 import com.terrabeata.wcm.siteRenderer.api.SiteRenderer;
 import com.terrabeata.wcm.siteRenderer.api.SiteRendererConstants;
 import com.terrabeata.wcm.siteRenderer.internal.site.SiteParser;
+import com.terrabeata.wcm.siteRenderer.internal.site.WebsiteConfigImpl;
 
 @Component(immediate=true)
 @Service(value={SiteRenderer.class,EventHandler.class})
@@ -196,43 +197,57 @@ public class SiteRendererImpl implements
 
 	public void publishTree(Resource resource) 
 			                throws SiteConfigurationException {
-		ResourceConfiguration config = siteParser.getResourceConfiguration(resource);
+		ResourceConfiguration config = 
+				                  resource.adaptTo(ResourceConfiguration.class);
 		publishTree(config);
 	}
 	
 	public void publishTree(SiteConfiguration website) 
 			throws SiteConfigurationException {
-		publishTree(website.getTopResource());
+		publishTree(website.getSiteRoot());
 	}
 	
 	public void publishTree(Resource resource, SiteConfiguration site) 
 			throws SiteConfigurationException {
-		ResourceConfiguration config = siteParser.getResourceConfiguration(resource, site);
+		ResourceConfiguration config = 
+							siteParser.getResourceConfiguration(resource, site);
 		publishTree(config);
 	}
 	
 
 	public void publishResource(ResourceConfiguration resource)
 			throws SiteConfigurationException {
+		log.debug("publishResource:: {}", resource.toString());
 		String path = resource.getResource().getPath();
-		String destinationPath = path;
 		String fileName = resource.getResource().getName();
-		String websiteName = resource.getWebsiteConfiguration().getName();
+		SiteConfiguration siteConfig = resource.getWebsiteConfiguration();
+		String websiteName = siteConfig.getName();
+		String defaultSuffix = "." + siteConfig.getDefaultSuffix();
+		String indexName = siteConfig.getIndexFileName();
 		String publisherName = resource.getWebsiteConfiguration().
                                                              getPublisherName();
-		
+
 		if (resource.isDirectory()) {
-			fileName = "index.html";
+			fileName = indexName+ defaultSuffix;
 		} else {
-			destinationPath = path.substring(0, path.lastIndexOf('/'));
+			path = path.substring(0, path.lastIndexOf('/'));
 			int lastIndex = fileName.lastIndexOf('.');
 			if (lastIndex == -1) {
-				fileName += ".html";
+				fileName += defaultSuffix;
 			} else if (lastIndex == (fileName.length()-1)) {
-				fileName += "html";
+				fileName += defaultSuffix;
 			}
 		}
 		
+		log.debug("publishResource:: resource={}",resource.getResource().getPath());
+		
+		String destinationPath = getDestination(path, siteConfig);
+		
+		log.debug("publishResource:: {},{},{},{},{}", new String[] {
+														path, fileName,websiteName,resource.getResource().getPath(),destinationPath
+													}
+													);
+
 		if (null == publisherName) publisherName = DEFAULT_PUBLISHER_NAME;
 		Publisher publisher = publishers.get(publisherName);
 		if (null == publisher) {
@@ -248,15 +263,13 @@ public class SiteRendererImpl implements
 		map.put(SiteRendererConstants.PROPERTY_EVENT_PUBLISHER_NAME, 
 				                                                 publisherName);
 		map.put(SiteRendererConstants.PROPERTY_EVENT_DESTINATION_PATH, 
-				                          getDestination(destinationPath, 
-						                  resource.getWebsiteConfiguration()));
+				                                               destinationPath);
 		map.put(SiteRendererConstants.PROPERTY_EVENT_WEBSITE_NAME, websiteName);
 		map.put(SiteRendererConstants.PROPERTY_DESTINATION_FILE_NAME, fileName);
 		map.put(JobUtil.PROPERTY_JOB_TOPIC, 
 				                       SiteRendererConstants.PUBLISH_JOB_TOPIC);
 		map.put(JobUtil.PROPERTY_JOB_NAME, UUID.randomUUID().toString());
 		
-		 
 		Event job = new Event(JobUtil.TOPIC_JOB, map);
 
 		log.debug("publishResource:: post event");
@@ -287,7 +300,7 @@ public class SiteRendererImpl implements
 	private String getDestination(String destinationPath, 
 			                      SiteConfiguration website) 
 					throws SiteConfigurationException {
-		String websiteTop = website.getTopResource().getPath();
+		String websiteTop = website.getSiteRoot().getPath();
 		if (destinationPath.startsWith(websiteTop)) {
 			return destinationPath.substring(websiteTop.length());
 		} else {

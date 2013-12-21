@@ -2,6 +2,7 @@ package com.terrabeata.wcm.siteRenderer.internal.site;
 
 import java.util.Iterator;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.sling.api.resource.Resource;
 
 import com.terrabeata.wcm.siteRenderer.api.ResourceConfiguration;
@@ -30,28 +31,31 @@ public class ResourceRenderConfigImpl implements ResourceConfiguration {
 	}
 	
 	public String getName() {
-		String suffixValue = (null == suffix || "".equals(suffix)) ? "" : "." + suffix;
-		String selectorsValue = "";
-		String nameValue = name;
-		if (null != selectors) {
-			for (int i = 0; i < selectors.length; i++) {
-				selectorsValue += "." + selectors[i];
-			}
-		}
+//		String suffixValue = (null == suffix || "".equals(suffix)) ? "" : "." + suffix;
+//		String selectorsValue = "";
+//		String nameValue = name;
+//		if (null != selectors) {
+//			for (int i = 0; i < selectors.length; i++) {
+//				selectorsValue += "." + selectors[i];
+//			}
+//		}
+//		if (null == name || "".equals(name)) {
+//			nameValue = resource.getName();
+//		}
+//		if (suffixValue.length() == 0 && nameValue.contains(".")) {
+//			int suffixStart = nameValue.lastIndexOf('.');
+//			nameValue = nameValue.substring(0, suffixStart-1) + selectorsValue + nameValue.substring(suffixStart);
+//		} else {
+//			nameValue += selectorsValue + suffixValue;
+//		}
+//		
+//		if (! nameValue.contains(".")) {
+//			nameValue += "." + websiteConfig.getDefaultSuffix();
+//		}
 		if (null == name || "".equals(name)) {
-			nameValue = resource.getName();
+			name = resource.getName();
 		}
-		if (suffixValue.length() == 0 && nameValue.contains(".")) {
-			int suffixStart = nameValue.lastIndexOf('.');
-			nameValue = nameValue.substring(0, suffixStart-1) + selectorsValue + nameValue.substring(suffixStart);
-		} else {
-			nameValue += selectorsValue + suffixValue;
-		}
-		
-		if (! nameValue.contains(".")) {
-			nameValue += ".html";
-		}
-		return nameValue;
+		return name;
 	}
 
 	public Resource getResource() {
@@ -77,6 +81,17 @@ public class ResourceRenderConfigImpl implements ResourceConfiguration {
 			return true;
 		}
 		return false;
+	}
+	
+	@Override
+	public String toString() {
+		String val = "[ResourceRenderConfigImpl resource:\""+getResource().getPath()+"\"";
+		val += " name:\"" + getName() + "\"";
+		val += " suffix:\"" + getSuffix() + "\"";
+		val += " selectors:" + ArrayUtils.toString(getSelectors(), "null");
+		val += " isDirectory:" + ((isDirectory()) ? "true" : "false");
+		val += "]";
+		return val;
 	}
 
 }

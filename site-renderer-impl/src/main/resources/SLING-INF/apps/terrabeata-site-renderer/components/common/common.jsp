@@ -19,30 +19,34 @@
 <head><title>Sample Content</title></head>
 <body>
 <h1><%= resource.getPath() %></h1>
-<p>This is simple, sample, content. Is siteRoot: resource.isResourceType("nt:unstructured") %>.</p>
-<p><%
+<p>This is simple, sample, content..</p>
+<p><ul><%
 Node myNode = resource.adaptTo(Node.class);
 PropertyIterator props = myNode.getProperties();
-String propNames = "|";
+String propNames = "";
 while(props.hasNext()){
+	%><li><% 
 	Property prop = props.nextProperty();
 	
-	if ("jcr:mixinTypes".equals(prop.getName()) )
-	{
-		propNames+="jcr:mixinTypes=";
+	%><%= prop.getName() %>=<% 
+	String val = null;
+	if (prop.isMultiple()) {
 		Value[] propValue = prop.getValues();
-		propNames += "-- has " + propValue.length + " items---";
-		for (int i = 0; i < propValue.length; i++) 
-			propNames += "*"+propValue[i].getString()+"*";
-		propNames += "|";
+		val = "";
+		for (int i = 0; i < propValue.length; i++) {
+			Value value = propValue[i];
+			if (i != 0) val += ",";
+			val += value.getString();
+		}
 	} else {
+		val = prop.getString();
 		
-		propNames += prop.getName() + "=" + prop.getString() + "|";
 	}
+	%><%= val %><% 
+	%></li><%
 }
 
 %>
-
-<%= propNames %>
+</ul>
 </body>
 </html>

@@ -56,6 +56,8 @@ public class FileTransport extends AbstractTransport {
 		}
 		filePath += fileName;
 		
+		log.debug("publishFile:: filePath={}",filePath);
+		
 		File newFile = new File(filePath);
 		
 		newFile.getParentFile().mkdirs();
@@ -150,6 +152,8 @@ public class FileTransport extends AbstractTransport {
 		String rootPath = 
 				OsgiUtil.toString(map.get(SiteRendererConstants.PROPERTY_ROOT_DIRECTORY), "");
 		
+		log.debug("getRootDirectoryPath[2]:: rootPath={}",rootPath);
+		
 		BundleContext ctx = getPublisher().adaptTo(BundleContext.class);
 		String slingHome = ctx.getProperty("sling.home");
 
@@ -165,7 +169,7 @@ public class FileTransport extends AbstractTransport {
 		if (rootPath.endsWith("/") != true) {
 			rootPath += "/";
 		}
-		
+		log.debug("getRootDirectoryPath[2]:: rootPath={}",rootPath);
 		return rootPath;
 	}
 

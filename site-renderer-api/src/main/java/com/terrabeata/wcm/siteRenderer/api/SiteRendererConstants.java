@@ -140,7 +140,6 @@ public class SiteRendererConstants {
 	
 	public final static String SLING_HOME_DIRECTORY = "{sling.home}";
 	
-	public final static String WEBSITE_ROOT_MIXIN = "terrabeata:Website";
 	
 	
 }

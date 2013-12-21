@@ -116,13 +116,13 @@
                 <configuration>
                     <instructions>
                     	<Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
+                        <Sling-Nodetypes>
+                            SLING-INF/nodetypes/site-renderer.cnd
+                        </Sling-Nodetypes>
                     	<Sling-Initial-Content>
                             SLING-INF/apps/terrabeata-site-renderer;overwrite:=true;path:=/apps/terrabeata-site-renderer,
                             SLING-INF/content/terrabeata-site-renderer-sample;overwrite:=true;path:=/content/terrabeata-site-renderer-sample
                         </Sling-Initial-Content>
-                  		<Sling-Nodetypes>
-                    		SLING-INF/nodetypes/site-renderer.cnd
-                  		</Sling-Nodetypes>
                     </instructions>
                 </configuration>
             </plugin>

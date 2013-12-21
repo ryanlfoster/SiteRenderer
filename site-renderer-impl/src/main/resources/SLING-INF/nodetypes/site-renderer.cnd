@@ -1,7 +1,11 @@
-<'terrabeata'='http://ns.terrabeata.com/sling/2014'>
+<'siteRender'='http://ns.terrabeata.com/sling/siteRender/2014'>
 
-[terrabeata:Website]
+[siteRender:Website]
   mixin
-  - terrabeata:siteName (string) mandatory
-  - terrabeata:publisher (string)
-  - terrabeata:excludeNodeTypes (string) multiple
+  - siteRender:siteName (string) mandatory
+  - siteRender:publisher (string)
+  - siteRender:renderSelector (string)
+  - siteRender:ignoreNodeNames (string) = 'jcr:content' multiple autocreated
+  - siteRender:ignoreNodeTypes (string) multiple
+  - siteRender:indexFileName (string) = 'index' mandatory autocreated 
+  - siteRender:defaultSuffix (string) = 'html' mandatory autocreated

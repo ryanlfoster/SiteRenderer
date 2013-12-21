@@ -1,3 +1,4 @@
+<%@page import="com.terrabeata.wcm.siteRenderer.api.ResourceConfiguration"%>
 <%@page import="org.apache.sling.api.resource.ResourceResolver"%>
 <%@page import="com.terrabeata.wcm.siteRenderer.api.SiteConfiguration"%>
 <%@page import="com.terrabeata.wcm.siteRenderer.api.SiteConfigurationException"%>
@@ -31,7 +32,13 @@ final ResourceResolver rr = resourceResolver;
 
 Resource res = resourceResolver.getResource("/content/terrabeata-site-renderer-sample/sample");
 
-publisherManager.publishTree(res);
+ResourceConfiguration resConfig = res.adaptTo(ResourceConfiguration.class);
+
+if (null != resConfig)
+    publisherManager.publishTree(resConfig);
+else {%>
+No Resource!	
+<% }
 %>
 
 </body>
