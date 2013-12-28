@@ -34,7 +34,10 @@ Resource res = resourceResolver.getResource("/content/terrabeata-site-renderer-s
 
 ResourceConfiguration resConfig = res.adaptTo(ResourceConfiguration.class);
 
-if (null != resConfig)
+if (null == publisherManager) {
+	%>No publisherManager<% 
+	
+} else if (null != resConfig)
     publisherManager.publishTree(resConfig);
 else {%>
 No Resource!	

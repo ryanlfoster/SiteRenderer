@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 
 import javax.jcr.Node;
+import javax.jcr.RepositoryException;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.sling.api.resource.Resource;
@@ -31,7 +32,7 @@ public class SiteParser {
 			throws SiteConfigurationException {
 		log.debug("getSiteConfiguration::");
 		if (member == null || member.getPath() == null) {
-			throw new SiteConfigurationException(
+			throw new IllegalArgumentException(
 					"Unable to get configuration. Invalid value for resource");
 		}
 		
@@ -40,20 +41,15 @@ public class SiteParser {
 		Resource currentResource = member;
 		
 		while (null != currentResource) {
-			ValueMap properties = currentResource.adaptTo(ValueMap.class);
-			if (properties.containsKey("jcr:mixinTypes")) {
-				String[] mixins =
-						properties.get("jcr:mixinTypes", String[].class);
-				for (int i = 0; i < mixins.length; i++) {
-					log.debug("getSiteConfiguration:: mixin[{}}={}", i, mixins[i]);
-					if (SiteRendererMixinConstants.SITE_RENDER_MIXIN.
-							                                equals(mixins[i])) {
-						log.debug("Found site root: {}", 
-								   currentResource.getParent());
-						return new WebsiteConfigImpl(currentResource);
-					}
-						
+			Node node = currentResource.adaptTo(Node.class);
+			try {
+				if (node.isNodeType(
+						        SiteRendererMixinConstants.SITE_RENDER_MIXIN)) {
+					return new WebsiteConfigImpl(currentResource);
 				}
+			} catch (Throwable e) {
+				log.warn("getSiteConfiguration:: Error from isNodeType: {}", 
+						                                        e.getMessage());
 			}
 			currentResource = currentResource.getParent();
 		}
@@ -63,14 +59,20 @@ public class SiteParser {
 	
 	public Iterator<ResourceConfiguration> getTreeResources(Resource top, 
 			SiteConfiguration site) throws SiteConfigurationException {
-		Resource[] resources = getRenderableChildren(top);
+		Resource[] resources = getRenderableChildren(top, site);
 		resources = (Resource[])ArrayUtils.add(resources, 0, top);
 		ResourceConfiguration[] configs = 
 					new ResourceConfiguration[resources.length];
 		for (int i = 0; i < resources.length; i++) {
+			log.debug("Add resource to iterator: {}", resources[i].getName());
 			ResourceConfiguration config = 
 					 getResourceConfiguration(resources[i], site);
-			configs[i] = config;
+			if (null != config) {
+				configs[i] = config;
+			} else {
+				log.warn("Unable to create config for resource: {}", 
+						resources[i]);
+			}
 		}
 		return Arrays.asList(configs).iterator();
 	}
@@ -78,9 +80,7 @@ public class SiteParser {
 	public Iterator<ResourceConfiguration> getSiteResourceConfigurations(
 			                                             SiteConfiguration site) 
 			                                 throws SiteConfigurationException {
-		
 		return getTreeResources(site.getSiteRoot(), site);
-		
 	}
 	
 	public ResourceConfiguration getResourceConfiguration(Resource resource) 
@@ -98,7 +98,6 @@ public class SiteParser {
 	
 	public ResourceConfiguration getResourceConfiguration(Resource resource, 
 			SiteConfiguration site) throws SiteConfigurationException {
-		
 		return getResourceConfiguration(resource, resource.getName(), site);
 	}
 
@@ -145,32 +144,71 @@ public class SiteParser {
 				                            selectors, site);
 	}
 
-	private Resource[] getRenderableChildren(Resource parent) {
+	private Resource[] getRenderableChildren(Resource parent, 
+			                                 SiteConfiguration site) {
+		
 		log.debug("getRenderableChildren:: parent={}",parent.getPath());
+		
 		Resource[] resources = new Resource[0];
 		Resource[] temp;
 		Resource[] childResources;
 		Iterator<Resource> children = parent.listChildren();
+		
 		while(children.hasNext()) {
 			Resource child = children.next();
-			resources = (Resource[])ArrayUtils.add(resources, 0, child);
+			
 			log.debug("getRenderableChildren:: child={}",child.getPath());
-			if (child.getName().equals("jcr:content")) continue;
-			log.debug("getRenderableChildren:: adding child");
-			childResources = getRenderableChildren(child);
-			temp = new Resource[resources.length+childResources.length];
-			int i = 0;
-			for (i = 0; i < resources.length; i++) {
-				temp[i] = resources[i];
+			
+			if (isRenderable(child, site)) {
+				
+				resources = (Resource[])ArrayUtils.add(resources, 0, child);
+
+				childResources = getRenderableChildren(child, site);
+				temp = new Resource[resources.length+childResources.length];
+				int i = 0;
+				for (i = 0; i < resources.length; i++) {
+					temp[i] = resources[i];
+				}
+				for (int j = 0; j < childResources.length; j++) {
+					temp[i+j] = childResources[j];
+				}
+				resources = temp;
 			}
-			for (int j = 0; j < childResources.length; j++) {
-				temp[i+j] = childResources[j];
-			}
-			resources = temp;
 		}
-		log.debug("getRenderableChildren:: total resource={}", 
-				   resources.length);
 		return resources;
 	}
-
+	
+	private boolean isRenderable(Resource resource, SiteConfiguration site) {
+		String[] ignoredNames = site.getIngoreNodeNames();
+		if (null == resource) return false;
+		if (null != ignoredNames){
+			for (int i = 0; i < ignoredNames.length; i++) {
+				if (ignoredNames[i].equals(resource.getName())) {
+					log.debug("Do not render resource. Ignored name: {}, " +
+						"resource: {}", ignoredNames[i], resource.getPath());
+					return false;
+				}
+			}
+		}
+		String[] ignoredTypes = site.getIgnoreNodeTypes();
+		if (null != ignoredTypes) {
+			Node node = resource.adaptTo(Node.class);
+			for (int i = 0; i < ignoredTypes.length; i++) {
+				try {
+					if (node.isNodeType(ignoredTypes[i])){
+						log.debug("Do not render resource. Ignored type: {}, " +
+								  "resource: {}", ignoredTypes[i], 
+								  resource.getPath());
+						return false;
+					}
+				} catch (RepositoryException e) {
+					log.warn("isRenderable: error while call " +
+							  "Node.isNodeType: {}", e.getMessage());
+					e.printStackTrace();
+					return false;
+				}
+			}
+		}
+		return true;
+	}
 }

@@ -19,6 +19,8 @@ import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.commons.mime.MimeTypeService;
 import org.apache.sling.commons.osgi.OsgiUtil;
 import org.apache.sling.event.EventUtil;
@@ -68,11 +70,11 @@ public class SiteRendererImpl implements
 	private static final String configurationFilterFormat = 
 			"(&(%s=%s) (service.pid=%s*))";
 			
-	private static final String queueConfigurationFilter = 
-			String.format(configurationFilterFormat,
-					      new Object[]{"publisher.name",
-		                                DEFAULT_QUEUE_NAME,
-					                    QueueConfiguration.class.getName()});
+//	private static final String queueConfigurationFilter = 
+//			String.format(configurationFilterFormat,
+//					      new Object[]{"publisher.name",
+//		                                DEFAULT_QUEUE_NAME,
+//					                    QueueConfiguration.class.getName()});
 					     
 	private static final String publisherConfigurationFilter =
 			String.format(configurationFilterFormat,
@@ -91,6 +93,9 @@ public class SiteRendererImpl implements
 	
 	@Reference
 	private ConfigurationAdmin configAdmin;
+	
+	@Reference
+	private ResourceResolverFactory resolverFactory;
 	
 	private ComponentContext context;
 
@@ -120,7 +125,17 @@ public class SiteRendererImpl implements
 			log.debug("activate:: {} = {}", key, properties.get(key));
 		}
 		
-		confirmConfigurations();
+		ResourceResolver resourceResolver = resolverFactory.getResourceResolver(null);
+		
+		Resource installData = resourceResolver.getResource("/var/siteRender/i001");
+		
+		
+		
+		if (null == installData) {
+			addDefaultPublisherConfig();
+			addQueueConfig();
+			// set i001
+		}
 	}
 	
 	@Deactivate
@@ -183,33 +198,60 @@ public class SiteRendererImpl implements
 					return currentQueue;
 			}
 		}
+		log.warn("Unable to find queue for publishing site content.");
 		return null;
 	}
 	
 	public void publishTree(ResourceConfiguration resource)
 			throws SiteConfigurationException {
+		if (null == resource)
+			throw new IllegalArgumentException(
+					"publishTree(ResourceConfiguration): " +
+					"resource may not be null");
 		Iterator<ResourceConfiguration> configs = 
 				siteParser.getTreeResources(resource.getResource(), 
 			    resource.getWebsiteConfiguration());
 		while(configs.hasNext()) {
-			publishResource(configs.next());
+			ResourceConfiguration config = configs.next();
+			publishResource(config);
 		}
 	}
 
 	public void publishTree(Resource resource) 
 			                throws SiteConfigurationException {
+		if (null == resource)
+			throw new IllegalArgumentException("publishTree(Resource): " +
+					"resource may not be null");
 		ResourceConfiguration config = 
 				                  resource.adaptTo(ResourceConfiguration.class);
-		publishTree(config);
+		if (null != config)
+			publishTree(config);
+		else
+			log.warn("publishTree: Unable to adapt resource to configuration.");
 	}
 	
 	public void publishTree(SiteConfiguration website) 
 			throws SiteConfigurationException {
+		if (null == website)
+			throw new IllegalArgumentException(
+					"publishTree(SiteConfiguration): " +
+					"argument, website, may not be null.");
 		publishTree(website.getSiteRoot());
 	}
 	
 	public void publishTree(Resource resource, SiteConfiguration site) 
 			throws SiteConfigurationException {
+		if (null == resource)
+			throw new IllegalArgumentException(
+						"publishTree(Resource, SiteConfiguration): " +
+						"argument, resource, may not be null."
+					);
+		if (null == site)
+			throw new IllegalArgumentException(
+						"publishTree(Resource, SiteConfiguration): " +
+						"argument, site, may not be null."
+					);
+		
 		ResourceConfiguration config = 
 							siteParser.getResourceConfiguration(resource, site);
 		publishTree(config);
@@ -218,6 +260,10 @@ public class SiteRendererImpl implements
 
 	public void publishResource(ResourceConfiguration resource)
 			throws SiteConfigurationException {
+		if (null == resource)
+			throw new IllegalArgumentException(
+					"publishResource(ResourceConfiguration):" +
+					" argument, resource, may not be null.");
 		log.debug("publishResource:: {}", resource.toString());
 		String path = resource.getResource().getPath();
 		String fileName = resource.getResource().getName();
@@ -279,15 +325,25 @@ public class SiteRendererImpl implements
 
 	public void publishResource(Resource resource)
 			throws SiteConfigurationException {
+		if (null == resource)
+			throw new IllegalArgumentException(
+					"publishResource(Resource):" +
+					" argument, resource, may not be null.");
 		SiteConfiguration site = siteParser.getSiteConfiguration(resource);
-		log.debug("publishResource[1]:: websiteConfig.getPublisherName(){}", site.getPublisherName());
 		publishResource(resource, site);
 	}
 
 	public void publishResource(Resource resource, 
 			                    SiteConfiguration websiteConfig) 
 			throws SiteConfigurationException{
-		log.debug("publishResource[2]:: websiteConfig.getPublisherName(){}", websiteConfig.getPublisherName());
+		if (null == resource)
+			throw new IllegalArgumentException(
+					"publishResource(Resource, SiteConfiguration):" +
+					" argument, resource, may not be null.");
+		if (null == websiteConfig)
+			throw new IllegalArgumentException(
+					"publishResource(Resource, SiteConfiguration):" +
+					" argument, websiteConfig, may not be null.");
 		ResourceConfiguration resourceConfig = 
 				siteParser.getResourceConfiguration(resource, 
 						                            websiteConfig);

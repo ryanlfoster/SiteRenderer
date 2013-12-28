@@ -75,8 +75,10 @@ public class FileTransport extends AbstractTransport {
 				output = 
 					new BufferedOutputStream(new FileOutputStream(filePath));
 				output.write(input);
-			}
-			finally {
+			} catch(Throwable e) {
+				log.warn("publishFile: error while exporting file, {}: {}", 
+						 filePath, e.getMessage());
+			} finally {
 				output.close();
 			}
 	    }
@@ -151,6 +153,7 @@ public class FileTransport extends AbstractTransport {
     @SuppressWarnings("unchecked")
 	private String getRootDirectoryPath() {
 		Map<String, Object> map = getPublisher().adaptTo(Map.class);
+		log.debug("getRootDirectoryPath:: path is null={}", (null==map) ? "true" : false);
 		String rootPath = 
 				OsgiUtil.toString(map.get(PublisherPropertyConstants.PROPERTY_ROOT_DIRECTORY), "");
 		
