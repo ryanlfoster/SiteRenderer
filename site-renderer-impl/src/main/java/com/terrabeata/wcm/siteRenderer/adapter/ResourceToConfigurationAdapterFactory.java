@@ -1,4 +1,4 @@
-package com.terrabeata.wcm.siteRenderer;
+package com.terrabeata.wcm.siteRenderer.adapter;
 
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
