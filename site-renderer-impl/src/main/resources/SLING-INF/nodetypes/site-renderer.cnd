@@ -9,3 +9,9 @@
   - siteRender:ignoreNodeTypes (string) multiple
   - siteRender:indexFileName (string) = 'index' mandatory autocreated 
   - siteRender:defaultSuffix (string) = 'html' mandatory autocreated
+ 
+[siteRender:ResourceConfig]
+  mixin
+  - siteRender:suffix (string)
+  - siteRender:renderSelector (string)
+  - siteRender:ignore (boolean)
