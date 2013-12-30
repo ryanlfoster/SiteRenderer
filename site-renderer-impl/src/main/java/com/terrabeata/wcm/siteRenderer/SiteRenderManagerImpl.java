@@ -42,18 +42,18 @@ import org.slf4j.LoggerFactory;
 import com.terrabeata.wcm.siteRenderer.api.Publisher;
 import com.terrabeata.wcm.siteRenderer.api.PublisherPropertyConstants;
 import com.terrabeata.wcm.siteRenderer.api.ResourceConfiguration;
-import com.terrabeata.wcm.siteRenderer.api.SiteRenderer;
-import com.terrabeata.wcm.siteRenderer.api.jobs.SiteRendererJobConstants;
+import com.terrabeata.wcm.siteRenderer.api.SiteRenderManager;
+import com.terrabeata.wcm.siteRenderer.api.exception.RenderingException;
+import com.terrabeata.wcm.siteRenderer.api.job.RenderJobConstants;
 import com.terrabeata.wcm.siteRenderer.internal.site.SiteParser;
 
-import exception.RenderingException;
 
 @Component(immediate=true)
-@Service(value={SiteRenderer.class,EventHandler.class})
+@Service(value={SiteRenderManager.class,EventHandler.class})
 @Property(name = EventConstants.EVENT_TOPIC, 
-          value=SiteRendererJobConstants.PUBLISH_JOB_TOPIC)
-public class SiteRendererImpl implements 
-								    SiteRenderer, EventHandler {
+          value=RenderJobConstants.PUBLISH_JOB_TOPIC)
+public class SiteRenderManagerImpl implements 
+								    SiteRenderManager, EventHandler {
 	
 	
 	public static final String DEFAULT_PUBLISHER_NAME = 
@@ -63,7 +63,7 @@ public class SiteRendererImpl implements
 			"terrabeata-renderer-job-queue";
 
 	private static final Logger log = 
-			LoggerFactory.getLogger(SiteRendererImpl.class);
+			LoggerFactory.getLogger(SiteRenderManagerImpl.class);
 	
 	private static final String configurationFilterFormat = 
 			"(&(%s=%s) (service.pid=%s*))";
@@ -101,10 +101,10 @@ public class SiteRendererImpl implements
 	
 	private SiteParser siteParser;
 	
-	public SiteRendererImpl() {
+	public SiteRenderManagerImpl() {
 		super();
 		publishers = new Hashtable<String, Publisher>();
-		siteParser = new SiteParser(mimeTypeService);
+		siteParser = new SiteParser();
 	}
 	
 	//--------------------------------------------------------------------------
@@ -112,6 +112,7 @@ public class SiteRendererImpl implements
 	//--------------------------------------------------------------------------
 	
 	@Activate
+	@SuppressWarnings("rawtypes")
 	private void activate(ComponentContext context) throws Exception {
 		this.context = context;
 		
@@ -151,7 +152,7 @@ public class SiteRendererImpl implements
 		{
 			String publisherName = OsgiUtil.toString(
 					event.getProperty(
-						SiteRendererJobConstants.PROPERTY_EVENT_PUBLISHER_NAME), 
+						RenderJobConstants.PROPERTY_EVENT_PUBLISHER_NAME), 
 						DEFAULT_PUBLISHER_NAME);
 		
 			if (publishers.containsKey(publisherName))
@@ -193,7 +194,7 @@ public class SiteRendererImpl implements
 			Queue currentQueue = queues.next();
 			String[] topics = currentQueue.getConfiguration().getTopics();
 			for (int i = 0; i < topics.length; i++) {
-				if (topics[i] == SiteRendererJobConstants.PUBLISH_JOB_TOPIC)
+				if (topics[i] == RenderJobConstants.PUBLISH_JOB_TOPIC)
 					return currentQueue;
 			}
 		}
@@ -216,6 +217,7 @@ public class SiteRendererImpl implements
 		}
 	}
 
+	@SuppressWarnings({"rawtypes","unchecked"})
 	public void publishResource(ResourceConfiguration resource)
 			throws RenderingException {
 		if (null == resource)
@@ -226,10 +228,10 @@ public class SiteRendererImpl implements
 		
 		Map map = resource.adaptTo(Map.class);
 		
-		map.put(SiteRendererJobConstants.PROPERTY_EVENT_ACTION, 
-				SiteRendererJobConstants.ACTION_FILE_ADD);
+		map.put(RenderJobConstants.PROPERTY_EVENT_ACTION, 
+				RenderJobConstants.ACTION_FILE_ADD);
 		map.put(JobUtil.PROPERTY_JOB_TOPIC, 
-				SiteRendererJobConstants.PUBLISH_JOB_TOPIC);
+				RenderJobConstants.PUBLISH_JOB_TOPIC);
 		map.put(JobUtil.PROPERTY_JOB_NAME, UUID.randomUUID().toString());
 
 		Event job = new Event(JobUtil.TOPIC_JOB, map);
@@ -274,7 +276,7 @@ public class SiteRendererImpl implements
 			props.put("queue.retrydelay", 2000);
 			props.put("queue.runlocal", true);
 			props.put("queue.topics", 
-					   new String[] {SiteRendererJobConstants.PUBLISH_JOB_TOPIC});
+					   new String[] {RenderJobConstants.PUBLISH_JOB_TOPIC});
 			props.put("queue.type", "ORDERED");
 			config.update(props);
 			log.debug("confirmQueue:: Queue created");
@@ -364,7 +366,7 @@ public class SiteRendererImpl implements
 		props.put("queue.retrydelay", 2000);
 		props.put("queue.runlocal", true);
 		props.put("queue.topics", 
-				   new String[] {SiteRendererJobConstants.PUBLISH_JOB_TOPIC});
+				   new String[] {RenderJobConstants.PUBLISH_JOB_TOPIC});
 		props.put("queue.type", "ORDERED");
 		log.debug("addQueueConfig - config added");
 		config.update(props);

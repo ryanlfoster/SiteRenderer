@@ -4,6 +4,8 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
 
+import javax.jcr.Node;
+
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -19,9 +21,15 @@ import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.terrabeata.exception.ExceptionStringifier;
 import com.terrabeata.wcm.siteRenderer.api.ResourceConfiguration;
 import com.terrabeata.wcm.siteRenderer.api.SiteConfiguration;
+import com.terrabeata.wcm.siteRenderer.api.exception.RenderingException;
+import com.terrabeata.wcm.siteRenderer.internal.site.MixinConstants;
+import com.terrabeata.wcm.siteRenderer.internal.site.ResourceConfigurationImpl;
+import com.terrabeata.wcm.siteRenderer.internal.site.SiteConfigurationImpl;
 import com.terrabeata.wcm.siteRenderer.internal.site.SiteParser;
+
 
 @Component(
         label = "Site Renderer Configuration Adapter Factory",
@@ -57,15 +65,13 @@ import com.terrabeata.wcm.siteRenderer.internal.site.SiteParser;
     )
 })
 @Service
-public class ResourceToConfigurationAdapterFactory implements AdapterFactory {
+public class ResourceAdapterFactory implements AdapterFactory {
 	
 	private static final Logger log = LoggerFactory
-            .getLogger(ResourceToConfigurationAdapterFactory.class);
+            .getLogger(ResourceAdapterFactory.class);
 	
 	@Reference
 	private MimeTypeService mimeTypeService;
-	
-	private SiteParser siteParser = new SiteParser(mimeTypeService);
 
 	@SuppressWarnings("unchecked")
 	public <AdapterType> AdapterType getAdapter(Object adaptable,
@@ -85,12 +91,10 @@ public class ResourceToConfigurationAdapterFactory implements AdapterFactory {
 		try {
 			if (type == SiteConfiguration.class) {
 				log.debug("getAdapter:: type is SiteConfiguration");
-				return (AdapterType) 
-						    siteParser.getSiteConfiguration(resource);
+				return (AdapterType) getSiteConfiguration(resource);
 			} else if (type == ResourceConfiguration.class) {
 				log.debug("getAdapter:: type is ResourceConfiguration");
-				return (AdapterType) 
-						siteParser.getResourceConfiguration(resource);
+				return (AdapterType) new ResourceConfigurationImpl(resource);
 			}
 		} catch (Throwable e) {
 			log.warn("Unable to adapt resource: {}, error: {}, {}, \n{}",
@@ -103,7 +107,7 @@ public class ResourceToConfigurationAdapterFactory implements AdapterFactory {
 	
 	 @Activate
     protected void activate(ComponentContext componentContext) {
-		 siteParser = new SiteParser(mimeTypeService);
+		 
 	 }
 		 
     @Deactivate
@@ -116,6 +120,36 @@ public class ResourceToConfigurationAdapterFactory implements AdapterFactory {
 	    aThrowable.printStackTrace(printWriter);
 	    return result.toString();
 	  }
+	
+	public SiteConfiguration getSiteConfiguration(Resource member) 
+			throws RenderingException {
+		if (member == null || member.getPath() == null) {
+			throw new IllegalArgumentException(
+					"Unable to get configuration. Invalid value for resource");
+		}
+		
+		log.debug("getSiteConfiguration:: member={}", member.getPath());
+		
+		Resource currentResource = member;
+		
+		while (null != currentResource) {
+			Node node = currentResource.adaptTo(Node.class);
+			try {
+				if (node.isNodeType(
+						        MixinConstants.SITE_RENDER_SITE_MIXIN)) {
+					return new SiteConfigurationImpl(currentResource);
+				}
+			} catch (Throwable e) {
+				log.warn("Unable to get site configuration for {}. \n{}", 
+						 member.getPath(),
+						 ExceptionStringifier.stringify(e));
+			}
+			currentResource = currentResource.getParent();
+		}
+		throw new RenderingException("Unable to find site root for " +
+					member.getPath());
+	}
+
 
     
 

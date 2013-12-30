@@ -1,6 +1,6 @@
 package com.terrabeata.wcm.siteRenderer.internal.site;
 
-public class SiteRendererMixinConstants {
+public class MixinConstants {
 	public final static String SITE_RENDER_NAMESPACE = "siteRender";
 	
 	public final static String SITE_RENDER_SITE_MIXIN = 

@@ -14,9 +14,9 @@ import org.slf4j.LoggerFactory;
 
 import com.terrabeata.wcm.siteRenderer.api.ResourceConfiguration;
 import com.terrabeata.wcm.siteRenderer.api.SiteConfiguration;
-import com.terrabeata.wcm.siteRenderer.api.jobs.SiteRendererJobConstants;
+import com.terrabeata.wcm.siteRenderer.api.exception.RenderingException;
+import com.terrabeata.wcm.siteRenderer.api.job.RenderJobConstants;
 
-import exception.RenderingException;
 
 @Component(
         label = "Site Renderer Configuration Adapter Factory",
@@ -56,6 +56,7 @@ public class ResourceConfigAdapterFactory implements AdapterFactory {
 	private static final Logger log = LoggerFactory
             .getLogger(ResourceConfigAdapterFactory.class);
 	
+	@SuppressWarnings("unchecked")
 	public <AdapterType> AdapterType getAdapter(Object adaptable,
 			Class<AdapterType> type) {
 		
@@ -71,7 +72,7 @@ public class ResourceConfigAdapterFactory implements AdapterFactory {
 		if (type == Map.class) { // create a publish job event from adapter
 			
 			String path = config.getResource().getPath();
-			String fileName = config.getResource().getName();
+			String fileName = config.getFileName();
 			SiteConfiguration siteConfig = config.getWebsiteConfiguration();
 			String websiteName = siteConfig.getName();
 			String indexName = siteConfig.getIndexFileName();
@@ -80,52 +81,31 @@ public class ResourceConfigAdapterFactory implements AdapterFactory {
 			String[] selectors = config.getSelectors();
 			String renderSelector = config.getRenderSelector();
 			String suffix = config.getSuffix();
-			String destinationPath = null;
-			
-			if (config.isDirectory()) {
-				fileName = indexName;
-			}
-			if (null != selectors) {
-				for (int i = 0; i < selectors.length; i++) {
-					fileName += "." + selectors[i];
-				}
-			}
-			if (null != suffix && suffix.length() > 0) {
-				fileName += "." + suffix;
-			}
-			
-			try {
-				destinationPath = getDestination(path, siteConfig);
-			} catch (RenderingException e) {
-				log.warn("Unable to adapt item: error while obtaining " +
-						"destination for resource {}, {}", 
-						path, e.getMessage());
-				e.printStackTrace();
-			}
+			String destinationPath = config.getDestinationDirectory();
 			
 			Map<String, Object> map = new HashMap<String, Object>();
 			if (null != suffix)
-				map.put(SiteRendererJobConstants.PROPERTY_EVENT_SUFFIX, 
+				map.put(RenderJobConstants.PROPERTY_EVENT_SUFFIX, 
 						suffix);
 			if (null != path)
-				map.put(SiteRendererJobConstants.PROPERTY_EVENT_RESOURCE_PATH, 
+				map.put(RenderJobConstants.PROPERTY_EVENT_RESOURCE_PATH, 
 						path);
 			if (null != publisherName)
-				map.put(SiteRendererJobConstants.PROPERTY_EVENT_PUBLISHER_NAME, 
+				map.put(RenderJobConstants.PROPERTY_EVENT_PUBLISHER_NAME, 
 						publisherName);
 			if (null != destinationPath)
-			   map.put(SiteRendererJobConstants.PROPERTY_EVENT_DESTINATION_PATH, 
+			   map.put(RenderJobConstants.PROPERTY_EVENT_DESTINATION_PATH, 
 						destinationPath);
 			if (null != websiteName)	
-				map.put(SiteRendererJobConstants.PROPERTY_EVENT_WEBSITE_NAME, 
+				map.put(RenderJobConstants.PROPERTY_EVENT_WEBSITE_NAME, 
 						websiteName);
 			if (null != fileName)	
-				map.put(SiteRendererJobConstants.PROPERTY_DESTINATION_FILE_NAME, 
+				map.put(RenderJobConstants.PROPERTY_DESTINATION_FILE_NAME, 
 						fileName);
 			if (null != selectors)
-				map.put(SiteRendererJobConstants.PROPERTY_SELECTORS, selectors);
+				map.put(RenderJobConstants.PROPERTY_SELECTORS, selectors);
 			if (null != renderSelector)
-				map.put(SiteRendererJobConstants.PROPERTY_RENDER_SELECTOR,
+				map.put(RenderJobConstants.PROPERTY_RENDER_SELECTOR,
 						renderSelector);
 			
 			return (AdapterType)map;
@@ -136,18 +116,6 @@ public class ResourceConfigAdapterFactory implements AdapterFactory {
 		return null;
 	}
 	
-	private String getDestination(String destinationPath, 
-            SiteConfiguration website) 
-            								throws RenderingException {
-		String websiteTop = website.getSiteRoot().getPath();
-		if (destinationPath.startsWith(websiteTop)) {
-			return destinationPath.substring(websiteTop.length());
-		} else {
-			String msg = "Website " + websiteTop +
-			   " does not contain " + destinationPath;
-			throw new RenderingException(msg);
-		}
-	}
 
 
 }

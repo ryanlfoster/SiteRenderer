@@ -8,15 +8,15 @@ import org.apache.sling.api.resource.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.terrabeata.wcm.siteRenderer.SiteRendererImpl;
+import com.terrabeata.wcm.siteRenderer.SiteRenderManagerImpl;
 import com.terrabeata.wcm.siteRenderer.api.SiteConfiguration;
+import com.terrabeata.wcm.siteRenderer.api.exception.RenderingException;
 
-import exception.RenderingException;
 
-public class WebsiteConfigImpl implements SiteConfiguration {
+public class SiteConfigurationImpl implements SiteConfiguration {
 	
 	private static final Logger log = 
-			LoggerFactory.getLogger(WebsiteConfigImpl.class);
+			LoggerFactory.getLogger(SiteConfigurationImpl.class);
 
 
 	private String publisherName;
@@ -28,23 +28,28 @@ public class WebsiteConfigImpl implements SiteConfiguration {
 	private String indexFileName;
 	private String defaultSuffix;
 	
-	public WebsiteConfigImpl (Resource siteRoot) 
+	public SiteConfigurationImpl (Resource siteRoot) 
 			                         throws RenderingException {
 		
 		Node root = siteRoot.adaptTo(Node.class);
-		name = getPropertyAsString(root, SiteRendererMixinConstants.SITE_NAME, null);
+		name = getPropertyAsString(root, MixinConstants.SITE_NAME, null);
 		
 		log.debug("constructor:: name={}", name);
 		
 		if (null != name) { 
-			publisherName = getPropertyAsString(root, SiteRendererMixinConstants.PUBLISHER_NAME, 
-					                   SiteRendererImpl.DEFAULT_PUBLISHER_NAME);
+			publisherName = getPropertyAsString(root, 
+					              MixinConstants.PUBLISHER_NAME, 
+					              SiteRenderManagerImpl.DEFAULT_PUBLISHER_NAME);
 			renderSelector = getPropertyAsString(root, 
-					SiteRendererMixinConstants.RENDER_SELECTOR, "");
-			ignoreNodeNames = getPropertyAsStringArray(root, SiteRendererMixinConstants.IGNORE_NODE_NAMES);
-			ignoreNodeTypes = getPropertyAsStringArray(root, SiteRendererMixinConstants.IGNORE_NODE_TYPES);
-			indexFileName = getPropertyAsString(root, SiteRendererMixinConstants.INDEX_FILE_NAME, "index");
-			defaultSuffix = getPropertyAsString(root, SiteRendererMixinConstants.DEFAULT_SUFFIX, "html");
+					MixinConstants.RENDER_SELECTOR, "");
+			ignoreNodeNames = getPropertyAsStringArray(root, 
+					                          MixinConstants.IGNORE_NODE_NAMES);
+			ignoreNodeTypes = getPropertyAsStringArray(root, 
+					                          MixinConstants.IGNORE_NODE_TYPES);
+			indexFileName = getPropertyAsString(root, 
+					                   MixinConstants.INDEX_FILE_NAME, "index");
+			defaultSuffix = getPropertyAsString(root, 
+					                     MixinConstants.DEFAULT_SUFFIX, "html");
 			this.siteRoot = siteRoot;
 		} else {
 			String rootName = (null != siteRoot) ? siteRoot.getPath() : "null";
@@ -111,7 +116,4 @@ public class WebsiteConfigImpl implements SiteConfiguration {
 			return null;
 		}
 	}
-	
-
-
 }

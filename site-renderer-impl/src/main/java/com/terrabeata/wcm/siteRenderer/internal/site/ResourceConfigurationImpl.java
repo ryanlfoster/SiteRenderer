@@ -1,8 +1,6 @@
 package com.terrabeata.wcm.siteRenderer.internal.site;
 
 import java.util.Iterator;
-import java.util.Map;
-
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
@@ -17,15 +15,15 @@ import org.slf4j.LoggerFactory;
 
 import com.terrabeata.wcm.siteRenderer.api.ResourceConfiguration;
 import com.terrabeata.wcm.siteRenderer.api.SiteConfiguration;
-import com.terrabeata.wcm.siteRenderer.api.jobs.SiteRendererJobConstants;
+import com.terrabeata.wcm.siteRenderer.api.exception.RenderingException;
+import com.terrabeata.wcm.siteRenderer.api.job.RenderJobConstants;
 
-import exception.RenderingException;
 
-public class ResourceRenderConfigImpl extends SlingAdaptable 
+public class ResourceConfigurationImpl extends SlingAdaptable 
 											 implements ResourceConfiguration {
 	
 	private static final Logger log = 
-			LoggerFactory.getLogger(ResourceRenderConfigImpl.class);
+			LoggerFactory.getLogger(ResourceConfigurationImpl.class);
 	
 
 	private SiteConfiguration websiteConfig;
@@ -35,28 +33,35 @@ public class ResourceRenderConfigImpl extends SlingAdaptable
 	private String name;
 	private String renderSelector = null;
 	private boolean ignore = false;
+	private String destinationDirectory;
 	
-	public ResourceRenderConfigImpl(Resource resource) 
+	public ResourceConfigurationImpl(Resource resource) 
 			                                   throws RenderingException {
 		this.resource = resource;
 		setWebsiteConfiguration(resource.adaptTo(SiteConfiguration.class));
 	}
 	
-	public ResourceRenderConfigImpl(Resource resource, Event job) 
+	public ResourceConfigurationImpl(Resource resource, Event job) 
 			                                  throws RenderingException {
 		this(resource);
 		
-		if (null != job.getProperty(SiteRendererJobConstants.PROPERTY_EVENT_SUFFIX)) {
-			setSuffix(job.getProperty(SiteRendererJobConstants.PROPERTY_EVENT_SUFFIX).toString());
+		if (null != job.getProperty(RenderJobConstants.PROPERTY_EVENT_SUFFIX)) {
+			setSuffix(job.getProperty(
+					      RenderJobConstants.PROPERTY_EVENT_SUFFIX).toString());
 		}
-		if (null != job.getProperty(SiteRendererJobConstants.PROPERTY_SELECTORS)) {
-			setSelectors((String[]) job.getProperty(SiteRendererJobConstants.PROPERTY_SELECTORS));
+		if (null != job.getProperty(RenderJobConstants.PROPERTY_SELECTORS)) {
+			setSelectors((String[]) job.getProperty(
+					                    RenderJobConstants.PROPERTY_SELECTORS));
 		}
-		if (null != job.getProperty(SiteRendererJobConstants.PROPERTY_DESTINATION_FILE_NAME)) {
-			setFileName(job.getProperty(SiteRendererJobConstants.PROPERTY_DESTINATION_FILE_NAME).toString());
+		if (null != job.getProperty(
+				           RenderJobConstants.PROPERTY_DESTINATION_FILE_NAME)) {
+			setFileName(job.getProperty(
+				 RenderJobConstants.PROPERTY_DESTINATION_FILE_NAME).toString());
 		}
-		if (null != job.getProperty(SiteRendererJobConstants.PROPERTY_RENDER_SELECTOR)) {
-			setRenderSelector(job.getProperty(SiteRendererJobConstants.PROPERTY_DESTINATION_FILE_NAME).toString());
+		if (null != job.getProperty(
+				                 RenderJobConstants.PROPERTY_RENDER_SELECTOR)) {
+			setRenderSelector(job.getProperty(
+				 RenderJobConstants.PROPERTY_DESTINATION_FILE_NAME).toString());
 		}
 	}
 	
@@ -73,7 +78,7 @@ public class ResourceRenderConfigImpl extends SlingAdaptable
 		useNodeValues(resource);
 	}
 	
-	public String getName() {
+	public String getFileName() {
 		if (null == name) {
 			setFileName(resource.getName());
 		}
@@ -82,7 +87,8 @@ public class ResourceRenderConfigImpl extends SlingAdaptable
 
 		if (null != selectors) {
 			for (int i =0; i < selectors.length; i++) {
-				myName += "." + selectors[i];
+				if (null != selectors[i])
+					myName += "." + selectors[i];
 			}
 		}
 		if (null != suffix && suffix.length() > 0) {
@@ -101,7 +107,7 @@ public class ResourceRenderConfigImpl extends SlingAdaptable
 			}
 			if (nameParts.length > 2) {
 				selectors = new String[nameParts.length-2];
-				for (int i = 1; i < nameParts.length-1; i++) {
+				for (int i = 2; i < nameParts.length-1; i++) {
 					selectors[i-1] = nameParts[i];
 				}
 			}
@@ -113,6 +119,7 @@ public class ResourceRenderConfigImpl extends SlingAdaptable
 	}
 
 	public String getSuffix() {
+		if (null == suffix) return "";
 		return suffix;
 	}
 	public void setSuffix(String value) {
@@ -120,6 +127,7 @@ public class ResourceRenderConfigImpl extends SlingAdaptable
 	}
 
 	public String[] getSelectors() {
+		if (null == selectors) return new String[0];
 		return selectors;
 	}
 	public void setSelectors(String[] value) {
@@ -142,7 +150,8 @@ public class ResourceRenderConfigImpl extends SlingAdaptable
 	@Override
 	public String toString() {
 		String val = "[ResourceRenderConfigImpl resource:\""+getResource().getPath()+"\"";
-		val += " name:\"" + getName() + "\"";
+		val += " name:\"" + name + "\"";
+		val += " destinationName:\"" + getFileName() + "\"";
 		val += " suffix:\"" + getSuffix() + "\"";
 		val += " selectors:" + ArrayUtils.toString(getSelectors(), "null");
 		val += " isDirectory:" + ((isDirectory()) ? "true" : "false");
@@ -164,36 +173,53 @@ public class ResourceRenderConfigImpl extends SlingAdaptable
 		renderSelector = value;
 	}
 	
+	public String getDestinationDirectory() {
+		return destinationDirectory;
+	}
+	public void setDestinationDirectory(String value) {
+		destinationDirectory = value;
+	}
+	
 	//--------------------------------------------------------------------------
 	// Utility methods to get values from nodes
 	//--------------------------------------------------------------------------
 	
 	private void useSiteValues(SiteConfiguration site) {
-		if (isDirectory()) setFileName(site.getIndexFileName());
-		suffix = site.getDefaultSuffix();
-		renderSelector = site.getRenderSelector();
+		String dir = resource.getPath();
+		if (isDirectory()) {
+			setFileName(site.getIndexFileName());
+		} else {
+			int ix = dir.lastIndexOf(resource.getName());
+			dir = dir.substring(0, ix);
+		}
+		dir = dir.substring(site.getSiteRoot().getPath().length());
+		setDestinationDirectory(dir);
+		setSuffix(site.getDefaultSuffix());
+		setRenderSelector(site.getRenderSelector());
 	}
 	
 	private void useNodeValues(Resource resource) {
 		
-		if (! isDirectory()) setFileName(resource.getName());
+		if (! isDirectory()) {
+			setFileName(resource.getName());
+		}
 		
 		Node node = resource.adaptTo(Node.class);
 		try {
 			PropertyIterator props = null;
-			if (node.isNodeType(SiteRendererMixinConstants.SITE_RENDER_RESOURCE_MIXIN)) {
-				props = node.getProperties(SiteRendererMixinConstants.SITE_RENDER_NAMESPACE+":*");
+			if (node.isNodeType(MixinConstants.SITE_RENDER_RESOURCE_MIXIN)) {
+				props = node.getProperties(MixinConstants.SITE_RENDER_NAMESPACE+":*");
 			}
 			if (null != props) {
 				while(props.hasNext()) {
 					Property currentProperty = props.nextProperty();
 					String propName = currentProperty.getName();
-					if (propName == SiteRendererMixinConstants.RENDER_SELECTOR) {
-						renderSelector = currentProperty.getValue().getString();
-					} else if (propName == SiteRendererMixinConstants.RESOURCE_IGNORE) {
-						ignore = currentProperty.getValue().getBoolean();
-					} else if (propName == SiteRendererMixinConstants.RESOURCE_SUFFIX) {
-						suffix = currentProperty.getValue().getString();
+					if (propName == MixinConstants.RENDER_SELECTOR) {
+						setRenderSelector(currentProperty.getValue().getString());
+					} else if (propName == MixinConstants.RESOURCE_IGNORE) {
+						setIgnore(currentProperty.getValue().getBoolean());
+					} else if (propName == MixinConstants.RESOURCE_SUFFIX) {
+						setSuffix(currentProperty.getValue().getString());
 					}
 				}
 			}

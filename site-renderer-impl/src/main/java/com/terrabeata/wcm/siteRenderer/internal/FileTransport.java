@@ -15,10 +15,9 @@ import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.terrabeata.wcm.siteRenderer.PublisherImpl;
-import com.terrabeata.wcm.siteRenderer.api.PublisherPropertyConstants;
 import com.terrabeata.wcm.siteRenderer.api.Publisher;
-import com.terrabeata.wcm.siteRenderer.api.jobs.SiteRendererJobConstants;
+import com.terrabeata.wcm.siteRenderer.api.PublisherPropertyConstants;
+import com.terrabeata.wcm.siteRenderer.api.job.RenderJobConstants;
 
 public class FileTransport extends AbstractTransport {
 	
@@ -39,7 +38,6 @@ public class FileTransport extends AbstractTransport {
 	//--------------------------------------------------------------------------
 	
 	@Override
-    @SuppressWarnings("unchecked")
 	public boolean publishFile(InputStream stream, String fileName,
 			String destinationPath, long deleteBefore) {
 		log.info("publishFile:: fileName: {}, " +
@@ -155,9 +153,10 @@ public class FileTransport extends AbstractTransport {
 		Map<String, Object> map = getPublisher().adaptTo(Map.class);
 		log.debug("getRootDirectoryPath:: path is null={}", (null==map) ? "true" : false);
 		String rootPath = 
-				OsgiUtil.toString(map.get(PublisherPropertyConstants.PROPERTY_ROOT_DIRECTORY), "");
-		
-		log.debug("getRootDirectoryPath[2]:: rootPath={}",rootPath);
+				OsgiUtil.toString(
+						map.get(PublisherPropertyConstants.
+								                     PROPERTY_DESTINATION_PATH), 
+								"");
 		
 		BundleContext ctx = getPublisher().adaptTo(BundleContext.class);
 		String slingHome = ctx.getProperty("sling.home");
@@ -169,7 +168,7 @@ public class FileTransport extends AbstractTransport {
 		rootPath = rootPath.replace(PublisherPropertyConstants.PUBLISHER_NAME_TAG,
 				 OsgiUtil.toString(map.get(PublisherPropertyConstants.PROPERTY_NAME),"unknown"));
 		rootPath = rootPath.replace(PublisherPropertyConstants.WEBSITE_NAME_TAG, 
-				OsgiUtil.toString(map.get(SiteRendererJobConstants.PROPERTY_EVENT_WEBSITE_NAME),"unknown"));
+				OsgiUtil.toString(map.get(RenderJobConstants.PROPERTY_EVENT_WEBSITE_NAME),"unknown"));
 		
 		if (rootPath.endsWith("/") != true) {
 			rootPath += "/";

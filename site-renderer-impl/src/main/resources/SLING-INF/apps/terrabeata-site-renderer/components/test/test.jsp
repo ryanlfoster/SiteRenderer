@@ -1,32 +1,40 @@
-<%@page import="com.terrabeata.wcm.siteRenderer.api.ResourceConfiguration"%>
+<%@page
+	import="com.terrabeata.wcm.siteRenderer.api.ResourceConfiguration"%>
 <%@page import="org.apache.sling.api.resource.ResourceResolver"%>
 <%@page import="com.terrabeata.wcm.siteRenderer.api.SiteConfiguration"%>
-<%@page import="exception.SiteParsingException"%>
 <%@page import="org.apache.sling.api.resource.Resource"%>
-<%@page import="com.terrabeata.wcm.siteRenderer.api.SiteRenderer"%>
+<%@page import="com.terrabeata.wcm.siteRenderer.api.SiteRenderManager"%>
 <%@page import="org.apache.sling.api.SlingHttpServletRequest"%>
-<%@page language="java" contentType="text/html; charset=utf-8" 
-    pageEncoding="utf-8" %><%
+<%@page language="java" contentType="text/html; charset=utf-8"
+	pageEncoding="utf-8"%>
+<%
 	
-%><%
+%>
+<%
 	
-%><%@ taglib prefix="sling" uri="http://sling.apache.org/taglibs/sling/1.0" %><%
+%><%@ taglib prefix="sling"
+	uri="http://sling.apache.org/taglibs/sling/1.0"%>
+<%
 	
-%><sling:defineObjects /><%
+%><sling:defineObjects />
+<%
 	
-%><%@page session="false"%><%
+%><%@page session="false"%>
+<%
 	
 %><!DOCTYPE html >
 <html>
 <head>
-	<title>Publisher Test</title>
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Publisher Test</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 </head>
 <body>
-<h1>Publisher Test</h1><%
+	<h1>Publisher Test</h1>
+	<%
 	
-%><%
-SiteRenderer publisherManager = sling.getService(SiteRenderer.class);
+%>
+	<%
+	SiteRenderManager publisherManager = sling.getService(SiteRenderManager.class);
 
 final ResourceResolver rr = resourceResolver;
 
@@ -35,13 +43,13 @@ Resource res = resourceResolver.getResource("/content/terrabeata-site-renderer-s
 ResourceConfiguration resConfig = res.adaptTo(ResourceConfiguration.class);
 
 if (null == publisherManager) {
-	%>No publisherManager<% 
+%>No publisherManager<% 
 	
 } else if (null != resConfig)
     publisherManager.publishTree(resConfig);
 else {%>
-No Resource!	
-<% }
+	No Resource!
+	<% }
 %>
 
 </body>

@@ -4,9 +4,10 @@ import java.util.Enumeration;
 
 import org.apache.sling.event.jobs.Queue;
 
-import exception.RenderingException;
+import com.terrabeata.wcm.siteRenderer.api.exception.RenderingException;
 
-public interface SiteRenderer {
+
+public interface SiteRenderManager {
 	
 	Enumeration<Publisher> getPublishers();
 	void registerPublisher(Publisher publisher);

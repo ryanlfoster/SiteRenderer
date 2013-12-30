@@ -1,8 +1,5 @@
 package com.terrabeata.wcm.siteRenderer.internal.site;
 
-import javax.jcr.Node;
-import javax.jcr.Property;
-
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 

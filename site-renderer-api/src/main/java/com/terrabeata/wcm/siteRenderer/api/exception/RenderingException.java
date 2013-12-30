@@ -1,4 +1,4 @@
-package exception;
+package com.terrabeata.wcm.siteRenderer.api.exception;
 
 public class RenderingException extends Exception {
 

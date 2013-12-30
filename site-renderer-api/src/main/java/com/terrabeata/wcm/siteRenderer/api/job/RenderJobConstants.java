@@ -1,4 +1,4 @@
-package com.terrabeata.wcm.siteRenderer.api.jobs;
+package com.terrabeata.wcm.siteRenderer.api.job;
 
 /**
  * Constants for the Terra Beata Publishing Suite.
@@ -7,7 +7,7 @@ package com.terrabeata.wcm.siteRenderer.api.jobs;
  * @author deke@terrabeata.com
  *
  */
-public class SiteRendererJobConstants {
+public class RenderJobConstants {
 	
 	/**
 	 * The event topic for publish jobs

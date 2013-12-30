@@ -20,7 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.terrabeata.wcm.siteRenderer.api.ResourceConfiguration;
-import com.terrabeata.wcm.siteRenderer.api.ResourceRenderingHelper;
+import com.terrabeata.wcm.siteRenderer.api.ResourceRenderer;
 
 @Component (
 		metatype = true,
@@ -28,8 +28,9 @@ import com.terrabeata.wcm.siteRenderer.api.ResourceRenderingHelper;
 		label = "Terra Beata Resource Renderer",
 		createPid = true
 		)
-@Service(value={ResourceRenderingHelper.class})
-public class ResourceRendererImpl extends SlingAdaptable implements ResourceRenderingHelper {
+@Service(value={ResourceRenderer.class})
+public class ResourceRendererImpl extends SlingAdaptable 
+                                                   implements ResourceRenderer {
 	
 	private static final Logger log = 
 			LoggerFactory.getLogger(ResourceRendererImpl.class);
@@ -74,6 +75,7 @@ public class ResourceRendererImpl extends SlingAdaptable implements ResourceRend
 
 	@Activate
 	@Modified
+	@SuppressWarnings("rawtypes")
 	private void activate(ComponentContext context) throws Exception {
 		pid = OsgiUtil.toString("service.pid", ""); 
 		log.debug("FileRenderer {} activated", pid);
@@ -94,12 +96,17 @@ public class ResourceRendererImpl extends SlingAdaptable implements ResourceRend
 	// FileRenderer implementation
 	//--------------------------------------------------------------------------
 	
-	public InputStream getInputStream(ResourceConfiguration resource) {
-		return getHTTPInputStream(resource);
+	public InputStream getInputStream(ResourceConfiguration config) {
+		Resource resource = config.getResource();
+		if (resource.getName().equals(config.getFileName())) {
+			InputStream result = resource.adaptTo(InputStream.class);
+			if (null != result) return result;
+		}
+		return getHTTPInputStream(config);
 	}
 	
 	//--------------------------------------------------------------------------
-	// HTTP
+	// HTTP rendering
 	//--------------------------------------------------------------------------
 	
 	private InputStream getHTTPInputStream(ResourceConfiguration config) {
@@ -111,12 +118,20 @@ public class ResourceRendererImpl extends SlingAdaptable implements ResourceRend
 		log.debug("getHTTPInputStream:: resource: {}, suffix:{}, selectors:{}",
 				  new Object[]{resource.getPath(),suffix,selectors});
 		
+		String path = resource.getPath();
+		int nameIx = path.lastIndexOf(resource.getName());
+		path = path.substring(0, nameIx);
+		String name = resource.getName().split("\\.")[0];
+		
 		String uri = (useHTTPS) ? "https://" : "http://";
 		uri += host + ":" + Integer.toString(port);
-		uri += resource.getPath();
+		uri += path + name;
+		
+		// TODO - clean up selectors and make tolerant of file resources with suffixes
 		if (null != selectors) {
 			for (int i = 0; i < selectors.length; i++) {
-				uri += "." + selectors[i];
+				if (null != selectors[i])
+					uri += "." + selectors[i];
 			}
 		}
 		if (null != suffix && suffix != "") uri += "." + suffix;
