@@ -1,5 +1,9 @@
 package com.terrabeata.wcm.siteRenderer.adapter;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.io.Writer;
+
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -64,30 +68,33 @@ public class ResourceToConfigurationAdapterFactory implements AdapterFactory {
 	private SiteParser siteParser = new SiteParser(mimeTypeService);
 
 	@SuppressWarnings("unchecked")
-	public <AdapterType> AdapterType getAdapter(Object resource,
+	public <AdapterType> AdapterType getAdapter(Object adaptable,
 			Class<AdapterType> type) {
 		log.debug("getAdapter::");
-		if (resource == null) {
+		if (adaptable == null) {
 			log.warn("Unable to adapt null resource.");
 			return null;
-		} else if (! (resource instanceof Resource)) {
+		} else if (! (adaptable instanceof Resource)) {
 			log.warn("Unable to adapt object. Object is type {}", 
-					  resource.getClass().getName());
+					adaptable.getClass().getName());
 			return null;
 		}
+		
+		Resource resource = (Resource)adaptable;
 
 		try {
 			if (type == SiteConfiguration.class) {
 				log.debug("getAdapter:: type is SiteConfiguration");
 				return (AdapterType) 
-						    siteParser.getSiteConfiguration((Resource)resource);
+						    siteParser.getSiteConfiguration(resource);
 			} else if (type == ResourceConfiguration.class) {
 				log.debug("getAdapter:: type is ResourceConfiguration");
 				return (AdapterType) 
-						siteParser.getResourceConfiguration((Resource)resource);
+						siteParser.getResourceConfiguration(resource);
 			}
 		} catch (Throwable e) {
-			log.warn("Unable to adapt resource: {}"+e.getMessage());
+			log.warn("Unable to adapt resource: {}, error: {}, {}, \n{}",
+					 new String[]{resource.getPath(),e.getClass().getName(),e.getMessage(),getStackTrace(e)});
 			return null;
 		}
 		log.warn("Unable to adapt resource.");
@@ -102,6 +109,14 @@ public class ResourceToConfigurationAdapterFactory implements AdapterFactory {
     @Deactivate
     protected void deactivate(ComponentContext componentContext) {
     }
+    
+	private String getStackTrace(Throwable aThrowable) {
+	    Writer result = new StringWriter();
+	    PrintWriter printWriter = new PrintWriter(result);
+	    aThrowable.printStackTrace(printWriter);
+	    return result.toString();
+	  }
+
     
 
 }

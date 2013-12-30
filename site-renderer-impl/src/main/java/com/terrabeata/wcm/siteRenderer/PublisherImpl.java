@@ -22,6 +22,7 @@ import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.commons.osgi.OsgiUtil;
+import org.apache.sling.jcr.api.SlingRepository;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.ComponentContext;
 import org.osgi.service.event.Event;
@@ -30,13 +31,17 @@ import org.slf4j.LoggerFactory;
 
 import com.terrabeata.wcm.siteRenderer.api.Publisher;
 import com.terrabeata.wcm.siteRenderer.api.PublisherPropertyConstants;
+import com.terrabeata.wcm.siteRenderer.api.ResourceConfiguration;
 import com.terrabeata.wcm.siteRenderer.api.ResourceRenderingHelper;
 import com.terrabeata.wcm.siteRenderer.api.SiteRenderer;
-import com.terrabeata.wcm.siteRenderer.api.SiteRendererJobConstants;
+import com.terrabeata.wcm.siteRenderer.api.jobs.SiteRendererJobConstants;
 import com.terrabeata.wcm.siteRenderer.internal.FTPTransport;
 import com.terrabeata.wcm.siteRenderer.internal.FileTransport;
 import com.terrabeata.wcm.siteRenderer.internal.Transport;
 import com.terrabeata.wcm.siteRenderer.internal.WebDAVTransport;
+import com.terrabeata.wcm.siteRenderer.internal.site.ResourceRenderConfigImpl;
+
+import exception.RenderingException;
 
 @Component (
 		label = "Terra Beata Publisher for Site Rendering",
@@ -165,34 +170,24 @@ public class PublisherImpl extends SlingAdaptable implements Publisher {
 		return OsgiUtil.toString(properties.get("service.pid"), "");
 	}
 	
-	private String getComponentID() {
-		return OsgiUtil.toString(properties.get("component.id"), "");
-	}
-	
 	//--------------------------------------------------------------------------
 	// JobProcessor implementation
 	//--------------------------------------------------------------------------
 	
 	public boolean process(Event job) {
-		log.debug("process:: topic={}", job.getTopic());
-		
 		currentJob = job;
 		
 		String action =
 				OsgiUtil.toString(job.getProperty(
 						SiteRendererJobConstants.PROPERTY_EVENT_ACTION), "");
+		String resourcePath =
+				OsgiUtil.toString(job.getProperty(
+				   SiteRendererJobConstants.PROPERTY_EVENT_RESOURCE_PATH), "");
 		
-		log.debug("process:: action={}", action);
+		log.debug("process:: action={}, resource={}", action, resourcePath);
 		
 		if (action == SiteRendererJobConstants.ACTION_FILE_ADD) {
 			
-			String[] selectors = null;
-			String suffix = null;
-			
-			log.debug("[1]");
-			String resourcePath =
-					OsgiUtil.toString(job.getProperty(
-					   SiteRendererJobConstants.PROPERTY_EVENT_RESOURCE_PATH), "");
 			String destinationPath =
 					OsgiUtil.toString(job.getProperty(
 				         SiteRendererJobConstants.PROPERTY_EVENT_DESTINATION_PATH), 
@@ -201,39 +196,53 @@ public class PublisherImpl extends SlingAdaptable implements Publisher {
 					OsgiUtil.toString(job.getProperty(
 							SiteRendererJobConstants.PROPERTY_DESTINATION_FILE_NAME), 
 							"");
+			
 			ResourceResolver resourceResolver;
-			log.debug("[2]");
+
 			try {
 				resourceResolver = 
-					resourceResolverFactory.getAdministrativeResourceResolver(null);
+					resourceResolverFactory.
+					                    getAdministrativeResourceResolver(null);
+				
+			
 			} catch (LoginException e) {
-				log.debug("process:: Not able to get resource resolver");
+				log.warn("process:: Not able to get resource resolver");
+				currentJob = null;
 				return false;
 			}
 			Resource resource = resourceResolver.getResource(resourcePath);
 			if (null == resource) {
 				log.warn("process:: Unable to resolve resource, {}", resourcePath);
+				currentJob = null;
 				return false;
 			}
-			log.debug("process:: resource name:{}, fileName:{}",
-					   resource.getName(),fileName);
-
-			log.debug("[4]");
-	
-			InputStream inputStream = resourceRenderer.getInputStream(resource, suffix, selectors);
+			
+			ResourceConfiguration config = null;
+			try {
+				config = new ResourceRenderConfigImpl(resource, job);
+			} catch (RenderingException e) {
+				log.warn("Unable to process resource: {}, {}", resource.getPath(), e.getMessage());
+				currentJob = null;
+				return false;
+			}
+			
+			InputStream inputStream = resourceRenderer.getInputStream(config);
 
 			if (inputStream == null)
 			{
 				log.warn("process:: Unable to render resource: {}", resourcePath);
+				currentJob = null;
 				return false;
 			}
 			
-			log.debug("[7]");
-			
-			return transport.publishFile(inputStream, fileName, destinationPath);
+			boolean result = transport.publishFile(inputStream, fileName, destinationPath);
+			currentJob = null;
+			log.info("Publishing complete: {}. {}", (result) ? "success" : "fault", resourcePath);
+			return result;
 			
 		}
 		log.warn("process:: Action not processed: {}", action);
+		currentJob = null;
 		return false;
 	}
 
@@ -306,7 +315,6 @@ public class PublisherImpl extends SlingAdaptable implements Publisher {
 		}
 		return super.adaptTo(type);
 	}
-
 
 
 }

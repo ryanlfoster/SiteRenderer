@@ -17,8 +17,8 @@ import org.slf4j.LoggerFactory;
 
 import com.terrabeata.wcm.siteRenderer.PublisherImpl;
 import com.terrabeata.wcm.siteRenderer.api.PublisherPropertyConstants;
-import com.terrabeata.wcm.siteRenderer.api.SiteRendererJobConstants;
 import com.terrabeata.wcm.siteRenderer.api.Publisher;
+import com.terrabeata.wcm.siteRenderer.api.jobs.SiteRendererJobConstants;
 
 public class FileTransport extends AbstractTransport {
 	

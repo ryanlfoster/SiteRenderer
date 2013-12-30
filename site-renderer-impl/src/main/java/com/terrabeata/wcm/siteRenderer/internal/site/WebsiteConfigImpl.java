@@ -5,13 +5,13 @@ import javax.jcr.Property;
 import javax.jcr.Value;
 
 import org.apache.sling.api.resource.Resource;
-import org.apache.sling.commons.osgi.OsgiUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.terrabeata.wcm.siteRenderer.SiteRendererImpl;
 import com.terrabeata.wcm.siteRenderer.api.SiteConfiguration;
-import com.terrabeata.wcm.siteRenderer.api.SiteConfigurationException;
+
+import exception.RenderingException;
 
 public class WebsiteConfigImpl implements SiteConfiguration {
 	
@@ -29,26 +29,26 @@ public class WebsiteConfigImpl implements SiteConfiguration {
 	private String defaultSuffix;
 	
 	public WebsiteConfigImpl (Resource siteRoot) 
-			                         throws SiteConfigurationException {
+			                         throws RenderingException {
 		
 		Node root = siteRoot.adaptTo(Node.class);
-		name = getPropertyAsString(root, SiteRendererMixinConstants.SITE_RENDER_SITE_NAME, null);
+		name = getPropertyAsString(root, SiteRendererMixinConstants.SITE_NAME, null);
 		
 		log.debug("constructor:: name={}", name);
 		
 		if (null != name) { 
-			publisherName = getPropertyAsString(root, SiteRendererMixinConstants.SITE_RENDER_PUBLISHER, 
+			publisherName = getPropertyAsString(root, SiteRendererMixinConstants.PUBLISHER_NAME, 
 					                   SiteRendererImpl.DEFAULT_PUBLISHER_NAME);
 			renderSelector = getPropertyAsString(root, 
-					SiteRendererMixinConstants.SITE_RENDER_RENDER_SELECTOR, "");
-			ignoreNodeNames = getPropertyAsStringArray(root, SiteRendererMixinConstants.SITE_RENDER_IGNORE_NODE_NAMES);
-			ignoreNodeTypes = getPropertyAsStringArray(root, SiteRendererMixinConstants.SITE_RENDER_IGNORE_NODE_TYPES);
-			indexFileName = getPropertyAsString(root, SiteRendererMixinConstants.SITE_RENDER_INDEX_FILE_NAME, "index");
-			defaultSuffix = getPropertyAsString(root, SiteRendererMixinConstants.SITE_RENDER_DEFAULT_SUFFIX, "html");
+					SiteRendererMixinConstants.RENDER_SELECTOR, "");
+			ignoreNodeNames = getPropertyAsStringArray(root, SiteRendererMixinConstants.IGNORE_NODE_NAMES);
+			ignoreNodeTypes = getPropertyAsStringArray(root, SiteRendererMixinConstants.IGNORE_NODE_TYPES);
+			indexFileName = getPropertyAsString(root, SiteRendererMixinConstants.INDEX_FILE_NAME, "index");
+			defaultSuffix = getPropertyAsString(root, SiteRendererMixinConstants.DEFAULT_SUFFIX, "html");
 			this.siteRoot = siteRoot;
 		} else {
 			String rootName = (null != siteRoot) ? siteRoot.getPath() : "null";
-			throw new SiteConfigurationException("Invalid Website " +
+			throw new RenderingException("Invalid Website " +
 				"root resource: "+rootName+
 				". Root must be type terrabeata:Website");
 		}

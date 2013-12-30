@@ -2,8 +2,9 @@ package com.terrabeata.wcm.siteRenderer.api;
 
 import java.util.Enumeration;
 
-import org.apache.sling.api.resource.Resource;
 import org.apache.sling.event.jobs.Queue;
+
+import exception.RenderingException;
 
 public interface SiteRenderer {
 	
@@ -13,17 +14,9 @@ public interface SiteRenderer {
 	
 	Queue getQueue();
 	
-	void publishTree(SiteConfiguration website) 
-			throws SiteConfigurationException;
 	void publishTree(ResourceConfiguration resource) 
-			throws SiteConfigurationException;
-	void publishTree(Resource resource) 
-			throws SiteConfigurationException;
-	void publishTree(Resource resource, SiteConfiguration site)
-			throws SiteConfigurationException;
+			throws RenderingException;
 
-	void publishResource(Resource resource) 
-			throws SiteConfigurationException;
 	void publishResource(ResourceConfiguration resource) 
-			throws SiteConfigurationException;
+			throws RenderingException;
 }

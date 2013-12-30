@@ -1,4 +1,4 @@
-package com.terrabeata.wcm.siteRenderer.api;
+package com.terrabeata.wcm.siteRenderer.api.jobs;
 
 /**
  * Constants for the Terra Beata Publishing Suite.
@@ -72,11 +72,20 @@ public class SiteRendererJobConstants {
 	public final static String PROPERTY_EVENT_PAYLOAD_TIMESTAMP = 
 			"event.publisher.payload.timestamp";
 	
+	public final static String PROPERTY_SELECTORS = 
+			"event.publisher.payload.selectors";
+	
+	public final static String PROPERTY_RENDER_SELECTOR = 
+			"event.publisher.payload.render.selector";
+	
 	/**
 	 * The Web site name property.
 	 */
 	public final static String PROPERTY_EVENT_WEBSITE_NAME =
 			"event.publisher.website.name";
+	
+	public final static String PROPERTY_EVENT_SUFFIX = 
+			"event.publisher.payload.suffix";
 	
 	/**
 	 * Value for the publish job PROPERTY_ACTION property. Publisher should 

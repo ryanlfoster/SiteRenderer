@@ -6,7 +6,6 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.util.Dictionary;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
@@ -43,12 +42,11 @@ import org.slf4j.LoggerFactory;
 import com.terrabeata.wcm.siteRenderer.api.Publisher;
 import com.terrabeata.wcm.siteRenderer.api.PublisherPropertyConstants;
 import com.terrabeata.wcm.siteRenderer.api.ResourceConfiguration;
-import com.terrabeata.wcm.siteRenderer.api.SiteConfiguration;
-import com.terrabeata.wcm.siteRenderer.api.SiteConfigurationException;
 import com.terrabeata.wcm.siteRenderer.api.SiteRenderer;
-import com.terrabeata.wcm.siteRenderer.api.SiteRendererJobConstants;
+import com.terrabeata.wcm.siteRenderer.api.jobs.SiteRendererJobConstants;
 import com.terrabeata.wcm.siteRenderer.internal.site.SiteParser;
-import com.terrabeata.wcm.siteRenderer.internal.site.WebsiteConfigImpl;
+
+import exception.RenderingException;
 
 @Component(immediate=true)
 @Service(value={SiteRenderer.class,EventHandler.class})
@@ -148,6 +146,7 @@ public class SiteRendererImpl implements
 	//--------------------------------------------------------------------------
 
 	public void handleEvent(Event event) {
+		log.debug("handleEvent::");
 		if (EventUtil.isLocal(event))
 		{
 			String publisherName = OsgiUtil.toString(
@@ -203,7 +202,7 @@ public class SiteRendererImpl implements
 	}
 	
 	public void publishTree(ResourceConfiguration resource)
-			throws SiteConfigurationException {
+			throws RenderingException {
 		if (null == resource)
 			throw new IllegalArgumentException(
 					"publishTree(ResourceConfiguration): " +
@@ -217,155 +216,33 @@ public class SiteRendererImpl implements
 		}
 	}
 
-	public void publishTree(Resource resource) 
-			                throws SiteConfigurationException {
-		if (null == resource)
-			throw new IllegalArgumentException("publishTree(Resource): " +
-					"resource may not be null");
-		ResourceConfiguration config = 
-				                  resource.adaptTo(ResourceConfiguration.class);
-		if (null != config)
-			publishTree(config);
-		else
-			log.warn("publishTree: Unable to adapt resource to configuration.");
-	}
-	
-	public void publishTree(SiteConfiguration website) 
-			throws SiteConfigurationException {
-		if (null == website)
-			throw new IllegalArgumentException(
-					"publishTree(SiteConfiguration): " +
-					"argument, website, may not be null.");
-		publishTree(website.getSiteRoot());
-	}
-	
-	public void publishTree(Resource resource, SiteConfiguration site) 
-			throws SiteConfigurationException {
-		if (null == resource)
-			throw new IllegalArgumentException(
-						"publishTree(Resource, SiteConfiguration): " +
-						"argument, resource, may not be null."
-					);
-		if (null == site)
-			throw new IllegalArgumentException(
-						"publishTree(Resource, SiteConfiguration): " +
-						"argument, site, may not be null."
-					);
-		
-		ResourceConfiguration config = 
-							siteParser.getResourceConfiguration(resource, site);
-		publishTree(config);
-	}
-	
-
 	public void publishResource(ResourceConfiguration resource)
-			throws SiteConfigurationException {
+			throws RenderingException {
 		if (null == resource)
 			throw new IllegalArgumentException(
 					"publishResource(ResourceConfiguration):" +
 					" argument, resource, may not be null.");
 		log.debug("publishResource:: {}", resource.toString());
-		String path = resource.getResource().getPath();
-		String fileName = resource.getResource().getName();
-		SiteConfiguration siteConfig = resource.getWebsiteConfiguration();
-		String websiteName = siteConfig.getName();
-		String defaultSuffix = "." + siteConfig.getDefaultSuffix();
-		String indexName = siteConfig.getIndexFileName();
-		String publisherName = resource.getWebsiteConfiguration().
-                                                             getPublisherName();
-
-		if (resource.isDirectory()) {
-			fileName = indexName+ defaultSuffix;
-		} else {
-			path = path.substring(0, path.lastIndexOf('/'));
-			int lastIndex = fileName.lastIndexOf('.');
-			if (lastIndex == -1) {
-				fileName += defaultSuffix;
-			} else if (lastIndex == (fileName.length()-1)) {
-				fileName += defaultSuffix;
-			}
-		}
 		
-		log.debug("publishResource:: resource={}",resource.getResource().getPath());
+		Map map = resource.adaptTo(Map.class);
 		
-		String destinationPath = getDestination(path, siteConfig);
-		
-		log.debug("publishResource:: {},{},{},{},{}", new String[] {
-														path, fileName,websiteName,resource.getResource().getPath(),destinationPath
-													}
-													);
-
-		if (null == publisherName) publisherName = DEFAULT_PUBLISHER_NAME;
-		Publisher publisher = publishers.get(publisherName);
-		if (null == publisher) {
-			String msg = "Publisher " + publisher + " does not exist.";
-			throw new SiteConfigurationException(msg);
-		}
-		
-		Map<String, Object> map = new HashMap<String, Object>();
-		map.put(SiteRendererJobConstants.PROPERTY_EVENT_RESOURCE_PATH, path);
 		map.put(SiteRendererJobConstants.PROPERTY_EVENT_ACTION, 
 				SiteRendererJobConstants.ACTION_FILE_ADD);
-
-		map.put(SiteRendererJobConstants.PROPERTY_EVENT_PUBLISHER_NAME, 
-				                                                 publisherName);
-		map.put(SiteRendererJobConstants.PROPERTY_EVENT_DESTINATION_PATH, 
-				                                               destinationPath);
-		map.put(SiteRendererJobConstants.PROPERTY_EVENT_WEBSITE_NAME, websiteName);
-		map.put(SiteRendererJobConstants.PROPERTY_DESTINATION_FILE_NAME, fileName);
 		map.put(JobUtil.PROPERTY_JOB_TOPIC, 
-				                       SiteRendererJobConstants.PUBLISH_JOB_TOPIC);
+				SiteRendererJobConstants.PUBLISH_JOB_TOPIC);
 		map.put(JobUtil.PROPERTY_JOB_NAME, UUID.randomUUID().toString());
-		
+
 		Event job = new Event(JobUtil.TOPIC_JOB, map);
 
+		
 		log.debug("publishResource:: post event");
 		eventAdmin.postEvent(job); 
 	}
 
-	public void publishResource(Resource resource)
-			throws SiteConfigurationException {
-		if (null == resource)
-			throw new IllegalArgumentException(
-					"publishResource(Resource):" +
-					" argument, resource, may not be null.");
-		SiteConfiguration site = siteParser.getSiteConfiguration(resource);
-		publishResource(resource, site);
-	}
-
-	public void publishResource(Resource resource, 
-			                    SiteConfiguration websiteConfig) 
-			throws SiteConfigurationException{
-		if (null == resource)
-			throw new IllegalArgumentException(
-					"publishResource(Resource, SiteConfiguration):" +
-					" argument, resource, may not be null.");
-		if (null == websiteConfig)
-			throw new IllegalArgumentException(
-					"publishResource(Resource, SiteConfiguration):" +
-					" argument, websiteConfig, may not be null.");
-		ResourceConfiguration resourceConfig = 
-				siteParser.getResourceConfiguration(resource, 
-						                            websiteConfig);
-		publishResource(resourceConfig);
-	}
 	
 	//--------------------------------------------------------------------------
 	// Private discovery methods
 	//--------------------------------------------------------------------------
-	
-	private String getDestination(String destinationPath, 
-			                      SiteConfiguration website) 
-					throws SiteConfigurationException {
-		String websiteTop = website.getSiteRoot().getPath();
-		if (destinationPath.startsWith(websiteTop)) {
-			return destinationPath.substring(websiteTop.length());
-		} else {
-			String msg = "Website " + websiteTop +
-					     " does not contain " + destinationPath;
-			throw new SiteConfigurationException(msg);
-		}
-	}
 	
 	private void confirmQueue() {
 		if (null != getQueue()) return;

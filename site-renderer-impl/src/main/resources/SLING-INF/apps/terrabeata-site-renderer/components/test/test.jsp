@@ -1,7 +1,7 @@
 <%@page import="com.terrabeata.wcm.siteRenderer.api.ResourceConfiguration"%>
 <%@page import="org.apache.sling.api.resource.ResourceResolver"%>
 <%@page import="com.terrabeata.wcm.siteRenderer.api.SiteConfiguration"%>
-<%@page import="com.terrabeata.wcm.siteRenderer.api.SiteConfigurationException"%>
+<%@page import="exception.SiteParsingException"%>
 <%@page import="org.apache.sling.api.resource.Resource"%>
 <%@page import="com.terrabeata.wcm.siteRenderer.api.SiteRenderer"%>
 <%@page import="org.apache.sling.api.SlingHttpServletRequest"%>

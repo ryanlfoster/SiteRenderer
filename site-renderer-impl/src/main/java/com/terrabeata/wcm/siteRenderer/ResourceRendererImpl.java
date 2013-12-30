@@ -12,12 +12,14 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Modified;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.sling.api.adapter.SlingAdaptable;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.commons.osgi.OsgiUtil;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.terrabeata.wcm.siteRenderer.api.ResourceConfiguration;
 import com.terrabeata.wcm.siteRenderer.api.ResourceRenderingHelper;
 
 @Component (
@@ -27,7 +29,7 @@ import com.terrabeata.wcm.siteRenderer.api.ResourceRenderingHelper;
 		createPid = true
 		)
 @Service(value={ResourceRenderingHelper.class})
-public class ResourceRendererImpl implements ResourceRenderingHelper {
+public class ResourceRendererImpl extends SlingAdaptable implements ResourceRenderingHelper {
 	
 	private static final Logger log = 
 			LoggerFactory.getLogger(ResourceRendererImpl.class);
@@ -92,38 +94,20 @@ public class ResourceRendererImpl implements ResourceRenderingHelper {
 	// FileRenderer implementation
 	//--------------------------------------------------------------------------
 	
-	public InputStream getInputStream(Resource resource, String suffix,
-			String[] selectors) {
-		log.debug("getInputStream (Resource resource, String suffix, " +
-				  "String[] selectors):: resource:{}", resource.getPath());
-		if ((suffix == "" || suffix == null) && 
-			(selectors == null || selectors.length == 0)) {
-			return getInputStream(resource);
-		}
-		return getHTTPInputStream(resource, suffix, selectors);
-	}
-
-	public InputStream getInputStream(Resource resource) {
-		log.debug("getInputStream (Resource resource):: resource:{}", 
-				  resource.getPath());
-		InputStream inputStream = resource.adaptTo(InputStream.class);
-		if (inputStream != null) {
-			log.debug("getInputStream:: inputStream for {} created from binary",
-					  resource.getPath());
-			return inputStream;
-		}
-		inputStream = getHTTPInputStream(resource, null, null);
-		if (inputStream == null)
-			inputStream = getHTTPInputStream(resource, "html", null);
-		return inputStream;
+	public InputStream getInputStream(ResourceConfiguration resource) {
+		return getHTTPInputStream(resource);
 	}
 	
 	//--------------------------------------------------------------------------
 	// HTTP
 	//--------------------------------------------------------------------------
 	
-	private InputStream getHTTPInputStream(Resource resource, String suffix, 
-			String[] selectors) {
+	private InputStream getHTTPInputStream(ResourceConfiguration config) {
+		
+		Resource resource = config.getResource();
+		String suffix = config.getSuffix();
+		String[] selectors = config.getSelectors();
+		
 		log.debug("getHTTPInputStream:: resource: {}, suffix:{}, selectors:{}",
 				  new Object[]{resource.getPath(),suffix,selectors});
 		
@@ -153,6 +137,7 @@ public class ResourceRendererImpl implements ResourceRenderingHelper {
 		
 		return null;
 	}
+
 	
 
 }

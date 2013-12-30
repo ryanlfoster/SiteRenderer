@@ -4,11 +4,12 @@ import java.util.Arrays;
 import java.util.Iterator;
 
 import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
+import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.sling.api.resource.Resource;
-import org.apache.sling.api.resource.ValueMap;
 import org.apache.sling.commons.mime.MimeTypeService;
 import org.apache.sling.commons.osgi.OsgiUtil;
 import org.slf4j.Logger;
@@ -16,7 +17,8 @@ import org.slf4j.LoggerFactory;
 
 import com.terrabeata.wcm.siteRenderer.api.ResourceConfiguration;
 import com.terrabeata.wcm.siteRenderer.api.SiteConfiguration;
-import com.terrabeata.wcm.siteRenderer.api.SiteConfigurationException;
+
+import exception.RenderingException;
 
 public class SiteParser {
 	
@@ -29,7 +31,7 @@ public class SiteParser {
 	}
 
 	public SiteConfiguration getSiteConfiguration(Resource member) 
-			throws SiteConfigurationException {
+			throws RenderingException {
 		log.debug("getSiteConfiguration::");
 		if (member == null || member.getPath() == null) {
 			throw new IllegalArgumentException(
@@ -44,7 +46,7 @@ public class SiteParser {
 			Node node = currentResource.adaptTo(Node.class);
 			try {
 				if (node.isNodeType(
-						        SiteRendererMixinConstants.SITE_RENDER_MIXIN)) {
+						        SiteRendererMixinConstants.SITE_RENDER_SITE_MIXIN)) {
 					return new WebsiteConfigImpl(currentResource);
 				}
 			} catch (Throwable e) {
@@ -53,12 +55,12 @@ public class SiteParser {
 			}
 			currentResource = currentResource.getParent();
 		}
-		throw new SiteConfigurationException("Unable to find site root for " +
+		throw new RenderingException("Unable to find site root for " +
 					member.getPath());
 	}
 	
 	public Iterator<ResourceConfiguration> getTreeResources(Resource top, 
-			SiteConfiguration site) throws SiteConfigurationException {
+			SiteConfiguration site) throws RenderingException {
 		Resource[] resources = getRenderableChildren(top, site);
 		resources = (Resource[])ArrayUtils.add(resources, 0, top);
 		ResourceConfiguration[] configs = 
@@ -79,25 +81,25 @@ public class SiteParser {
 	
 	public Iterator<ResourceConfiguration> getSiteResourceConfigurations(
 			                                             SiteConfiguration site) 
-			                                 throws SiteConfigurationException {
+			                                 throws RenderingException {
 		return getTreeResources(site.getSiteRoot(), site);
 	}
 	
 	public ResourceConfiguration getResourceConfiguration(Resource resource) 
-			throws SiteConfigurationException {
+			throws RenderingException {
 		String name = resource.getName();
 		return getResourceConfiguration(resource, name);	
 	}
 	
 	public ResourceConfiguration getResourceConfiguration(Resource resource, 
 														  String name) 
-			throws SiteConfigurationException {
+			throws RenderingException {
 		SiteConfiguration site = getSiteConfiguration(resource);
 		return getResourceConfiguration(resource, name, site);
 	}
 	
 	public ResourceConfiguration getResourceConfiguration(Resource resource, 
-			SiteConfiguration site) throws SiteConfigurationException {
+			SiteConfiguration site) throws RenderingException {
 		return getResourceConfiguration(resource, resource.getName(), site);
 	}
 
@@ -140,8 +142,23 @@ public class SiteParser {
 	public ResourceConfiguration getResourceConfiguration(Resource item, 
 			String name, String suffix, String[] selectors, 
 			                                           SiteConfiguration site) {
-		return new ResourceRenderConfigImpl(item, name, suffix, 
-				                            selectors, site);
+		ResourceRenderConfigImpl config = null;
+		try {
+			config = new ResourceRenderConfigImpl(item);
+		} catch (RenderingException e) {
+			log.warn("Unable to get resource configuration for {}, error: {}", 
+					 item.getPath(), e.getMessage());
+			e.printStackTrace();
+		}
+		config.setFileName(null);
+		config.setSuffix(null);
+		config.setSelectors(null);
+		if (null != site) config.setWebsiteConfiguration(site);
+		if (null != name) config.setFileName(name);
+		if (null != suffix) config.setSuffix(suffix);
+		if (null != selectors) config.setSelectors(selectors);
+		
+		return config;
 	}
 
 	private Resource[] getRenderableChildren(Resource parent, 
@@ -180,7 +197,10 @@ public class SiteParser {
 	
 	private boolean isRenderable(Resource resource, SiteConfiguration site) {
 		String[] ignoredNames = site.getIngoreNodeNames();
+		
 		if (null == resource) return false;
+		
+		Node node = resource.adaptTo(Node.class);
 		if (null != ignoredNames){
 			for (int i = 0; i < ignoredNames.length; i++) {
 				if (ignoredNames[i].equals(resource.getName())) {
@@ -190,25 +210,41 @@ public class SiteParser {
 				}
 			}
 		}
+		
 		String[] ignoredTypes = site.getIgnoreNodeTypes();
 		if (null != ignoredTypes) {
-			Node node = resource.adaptTo(Node.class);
-			for (int i = 0; i < ignoredTypes.length; i++) {
+			if (null == node) {
+				log.warn("Unable to adapt resource to a node: {}",resource.getPath());
+				return false;
+			}
 				try {
-					if (node.isNodeType(ignoredTypes[i])){
-						log.debug("Do not render resource. Ignored type: {}, " +
-								  "resource: {}", ignoredTypes[i], 
-								  resource.getPath());
+					if (node.isNodeType(SiteRendererMixinConstants.SITE_RENDER_RESOURCE_MIXIN)) {
+						Property ignoreProp = node.getProperty(SiteRendererMixinConstants.RESOURCE_IGNORE);
+						if (ignoreProp.getBoolean()) return false;
+					}
+				} catch (PathNotFoundException e1) {
+					// do nothing
+				} catch (RepositoryException e1) {
+					// do nothing
+				}
+				for (int i = 0; i < ignoredTypes.length; i++) {
+					try {
+						if (node.isNodeType(ignoredTypes[i])){
+							log.debug("Do not render resource. Ignored type: {}, " +
+									  "resource: {}", ignoredTypes[i], 
+									  resource.getPath());
+							return false;
+						}
+					} catch (RepositoryException e) {
+						log.warn("isRenderable: error while call " +
+								  "Node.isNodeType: {}", e.getMessage());
+						e.printStackTrace();
 						return false;
 					}
-				} catch (RepositoryException e) {
-					log.warn("isRenderable: error while call " +
-							  "Node.isNodeType: {}", e.getMessage());
-					e.printStackTrace();
-					return false;
 				}
-			}
+
 		}
+		
 		return true;
 	}
 }
