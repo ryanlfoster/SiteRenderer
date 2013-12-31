@@ -11,6 +11,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 
+import javax.jcr.Node;
+import javax.jcr.Session;
+
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -45,6 +48,7 @@ import com.terrabeata.wcm.siteRenderer.api.ResourceConfiguration;
 import com.terrabeata.wcm.siteRenderer.api.SiteRenderManager;
 import com.terrabeata.wcm.siteRenderer.api.exception.RenderingException;
 import com.terrabeata.wcm.siteRenderer.api.job.RenderJobConstants;
+import com.terrabeata.wcm.siteRenderer.internal.SiteRendererPersistence;
 import com.terrabeata.wcm.siteRenderer.internal.site.SiteParser;
 
 
@@ -101,6 +105,8 @@ public class SiteRenderManagerImpl implements
 	
 	private SiteParser siteParser;
 	
+	private SiteRendererPersistence persistence;
+	
 	public SiteRenderManagerImpl() {
 		super();
 		publishers = new Hashtable<String, Publisher>();
@@ -124,16 +130,13 @@ public class SiteRenderManagerImpl implements
 			log.debug("activate:: {} = {}", key, properties.get(key));
 		}
 		
-		ResourceResolver resourceResolver = resolverFactory.getResourceResolver(null);
+		persistence = new SiteRendererPersistence(resolverFactory);
 		
-		Resource installData = resourceResolver.getResource("/var/siteRender/i001");
-		
-		
-		
-		if (null == installData) {
+		Map map = persistence.getData("/");		
+		if (null == map) {
+			persistence.initialize();
 			addDefaultPublisherConfig();
 			addQueueConfig();
-			// set i001
 		}
 	}
 	
